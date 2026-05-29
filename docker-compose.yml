@@ -1,0 +1,53 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: symfony_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/app
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+    networks:
+      - symfony
+
+  php:
+    build:
+      context: ./docker/php
+      args:
+          UID: ${UID:-1000}
+          GID: ${GID:-1000}
+      dockerfile: Dockerfile
+    container_name: symfony_php
+    volumes:
+      - ./:/app
+    networks:
+      - symfony
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: symfony_postgres
+    environment:
+      POSTGRES_DB: symfony_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - symfony
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  symfony:
