@@ -3,12 +3,20 @@
 /.env.local
 /.env.local.php
 /.env.*.local
-/.idea/
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
 /var/
 /vendor/
 ###< symfony/framework-bundle ###
+
+###> IDE ###
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+###> IDE ###
 
 ###> phpunit/phpunit ###
 /phpunit.xml
@@ -24,3 +32,7 @@
 /.php-cs-fixer.php
 /.php-cs-fixer.cache
 ###< php-cs-fixer/shim ###
+
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+###< lexik/jwt-authentication-bundle ###
