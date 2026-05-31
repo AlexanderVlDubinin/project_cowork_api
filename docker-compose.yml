@@ -5,7 +5,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./:/app
+      - ./:/app:delegated
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - php
@@ -21,7 +21,8 @@ services:
       dockerfile: Dockerfile
     container_name: symfony_php
     volumes:
-      - ./:/app
+      - ./:/app:delegated
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini
     networks:
       - symfony
     depends_on:
