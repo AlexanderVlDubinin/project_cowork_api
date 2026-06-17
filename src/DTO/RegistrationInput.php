@@ -2,8 +2,11 @@
 
 namespace App\DTO;
 
+use App\Entity\User;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
+#[UniqueEntity(fields: ['email'], message: 'This email is already registered', entityClass: User::class)]
 class RegistrationInput
 {
     #[Assert\NotBlank(message: "Full name must not be empty.")]

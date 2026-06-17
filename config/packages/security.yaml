@@ -17,7 +17,7 @@ security:
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
         login: # for case lexik/jwt-authentication-bundle
-            pattern: ^/api/login
+            pattern: ^/api/login_check$
             stateless: true
             json_login:
                 check_path: /api/login_check

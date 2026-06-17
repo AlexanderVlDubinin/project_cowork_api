@@ -43,8 +43,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * The hashed password
      */
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Assert\NotBlank]
-    #[Assert\Length(min: 8, minMessage: 'Password must be at least 8 characters')]
     private ?string $password = null;
 
     /**
@@ -143,12 +141,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    #[ORM\PrePersist]
-    public function onPrePersist(): void
-    {
-        $this->createdAt = new \DateTimeImmutable();
-    }
-
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
@@ -177,25 +169,4 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         // @deprecated, to be removed when upgrading to Symfony 8
     }
-
-    /*
-    public function addRole(string $role): static
-    {
-        if (!in_array($role, $this->roles, true)) {
-            $this->roles[] = $role;
-        }
-        return $this;
-    }
-
-    public function removeRole(string $role): static
-    {
-        $this->roles = array_filter($this->roles, fn($r) => $r !== $role));
-    return $this;
-}
-
-    public function hasRole(string $role): bool
-    {
-        return in_array($role, $this->roles, true);
-    }
-    */
 }
