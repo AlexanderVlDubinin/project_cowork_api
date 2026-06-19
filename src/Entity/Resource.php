@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Enum\ResourceType;
 use App\Repository\ResourceRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -44,6 +46,17 @@ class Resource
     #[ORM\Column(type: Types::INTEGER)]
     #[Groups(['resource:read'])]
     private ?int $pricePerHour = null;
+
+    /**
+     * @var Collection<int, Booking>
+     */
+    #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'resource', orphanRemoval: true)]
+    private Collection $bookings;
+
+    public function __construct()
+    {
+        $this->bookings = new ArrayCollection();
+    }
 
     public function getId(): ?Uuid
     {
@@ -106,6 +119,36 @@ class Resource
     public function setPricePerHour(int $pricePerHour): static
     {
         $this->pricePerHour = $pricePerHour;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Booking>
+     */
+    public function getBookings(): Collection
+    {
+        return $this->bookings;
+    }
+
+    public function addBooking(Booking $booking): static
+    {
+        if (!$this->bookings->contains($booking)) {
+            $this->bookings->add($booking);
+            $booking->setResource($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBooking(Booking $booking): static
+    {
+        if ($this->bookings->removeElement($booking)) {
+            // set the owning side to null (unless already changed)
+            if ($booking->getResource() === $this) {
+                $booking->setResource(null);
+            }
+        }
 
         return $this;
     }

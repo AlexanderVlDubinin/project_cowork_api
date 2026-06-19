@@ -18,6 +18,7 @@ final class ResourceClientController extends AbstractController
         // $userRole = $this->getUser()->getRoles();
         $typeParam = $request->query->get('type');
         $enumType = null;
+        //$date = $request->query->get('date');
 
         if ($typeParam) {
             $enumType = ResourceType::tryFrom($typeParam);
