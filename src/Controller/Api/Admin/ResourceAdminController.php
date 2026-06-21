@@ -3,6 +3,7 @@
 namespace App\Controller\Api\Admin;
 
 use App\DTO\ResourceInput;
+use App\DTO\ResourceListFilterInput;
 use App\Entity\Resource;
 use App\Repository\ResourceRepository;
 use App\Service\ResourceService;
@@ -10,6 +11,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -25,11 +27,16 @@ final class ResourceAdminController extends AbstractController
      * GET /api/admin/resources
      */
     #[Route('/resources', name: 'api_admin_resources', methods: ['GET'])]
-    public function index(ResourceRepository $repository): JsonResponse
+    public function index(
+        ResourceRepository $repository,
+        #[MapQueryString(validationFailedStatusCode: 400)] ?ResourceListFilterInput $filters = null
+    ): JsonResponse
     {
-        // $userRole = $this->getUser()->getRoles();
+        $filters ??= new ResourceListFilterInput();
+        $resources = $repository->findListForAdminByFilters($filters);
+
         return $this->json(
-            $repository->findAll(),
+            $resources,
             Response::HTTP_OK,
             [],
             [

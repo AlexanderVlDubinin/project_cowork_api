@@ -2,6 +2,8 @@
 
 namespace App\EventListener;
 
+use App\Enum\BookingStatus;
+use App\Enum\ResourceType;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +29,20 @@ class ValidationExceptionListener
             $errors = [];
 
             foreach ($previous->getViolations() as $violation) {
-                $errors[$violation->getPropertyPath()] = $violation->getMessage();
+                $property = $violation->getPropertyPath();
+                $enumMap = [
+                    'type' => ResourceType::class,
+                    'status' => BookingStatus::class,
+                ];
+                if (isset($enumMap[$property])) {
+                    /** @var class-string<\BackedEnum> $enumClass */
+                    $enumClass = $enumMap[$property];
+                    $allowedValues = array_column($enumClass::cases(), 'value');
+                    $allowedString = implode(', ', $allowedValues);
+                    $errors[$property] = 'Invalid resource type. Available options: ' . $allowedString;
+                } else {
+                    $errors[$property] = $violation->getMessage();
+                }
             }
 
             $response = new JsonResponse([
