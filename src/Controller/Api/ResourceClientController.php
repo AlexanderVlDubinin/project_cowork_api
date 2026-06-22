@@ -2,19 +2,26 @@
 
 namespace App\Controller\Api;
 
+use App\DTO\ResourceListFilterInput;
 use App\Enum\ResourceType;
 use App\Repository\ResourceRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class ResourceClientController extends AbstractController
 {
     #[Route('/api/resources', name: 'api_client_resources', methods: ['GET'])]
-    public function index(Request $request, ResourceRepository $repository): JsonResponse
+    public function index(
+        /*Request $request,*/
+        ResourceRepository $repository,
+        #[MapQueryString(validationFailedStatusCode: 400)] ?ResourceListFilterInput $filters = null
+    ): JsonResponse
     {
+        /*
         // $userRole = $this->getUser()->getRoles();
         $typeParam = $request->query->get('type');
         $enumType = null;
@@ -40,6 +47,11 @@ final class ResourceClientController extends AbstractController
         }
 
         $resources = $repository->findByFilters($enumType, true);
+        */
+
+        $filters ??= new ResourceListFilterInput();
+
+        $resources = $repository->findListForClientByFilters($filters);
 
         return $this->json(
             $resources,

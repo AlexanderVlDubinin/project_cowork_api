@@ -75,11 +75,13 @@ class ResourceRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
-    public function findByFilters(?ResourceType $type, bool $isActive): array
+    public function findListForClientByFilters(ResourceListFilterInput $filters): array
     {
+        $type = $filters->type ?? null;
+
         $qb = $this->createQueryBuilder('resources')
             ->where('resources.isActive = :isActive')
-            ->setParameter('isActive', $isActive);
+            ->setParameter('isActive', true);
 
         if ($type) {
             $qb->andWhere('resources.type = :type')
