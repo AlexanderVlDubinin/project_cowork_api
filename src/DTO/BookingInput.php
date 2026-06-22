@@ -26,7 +26,7 @@ class BookingInput
         $startedAt =new \DateTimeImmutable($this->startedAt);
 
         if ($tz) {
-            $startedAt->setTimezone(new \DateTimeZone($tz));
+            $startedAt = $startedAt->setTimezone(new \DateTimeZone($tz));
         }
 
         return $startedAt;
