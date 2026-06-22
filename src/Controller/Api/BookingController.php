@@ -18,7 +18,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 final class BookingController extends AbstractController
 {
@@ -81,11 +80,11 @@ final class BookingController extends AbstractController
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
-            throw new AccessDeniedException('User is not logged in or has the wrong class.');
+            throw $this->createAccessDeniedException('User is not logged in or has the wrong class.');
         }
 
         if ($booking->getUser()->getId() !== $user->getId() && !$this->isGranted('ROLE_ADMIN')) { // Voter ???
-            throw new AccessDeniedException('You do not have permission to cancel this booking.');
+            throw $this->createAccessDeniedException('You do not have permission to cancel this booking.');
         }
 
         if ($booking->getStatus() === BookingStatus::CANCELLED) {
