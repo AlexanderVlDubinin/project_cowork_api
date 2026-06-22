@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\DTO\BookingListFilterInput;
 use App\Entity\Booking;
 use App\Entity\Resource;
 use App\Entity\User;
@@ -35,18 +36,82 @@ class BookingRepository extends ServiceEntityRepository
         return $qb->getQuery()->getSingleScalarResult() > 0;
     }
 
-    public function findClientBookings(User $user, string $orderBy = 'DESC'): array
+    public function findBookingsList(
+        ?User $user,
+        ?BookingListFilterInput $filters,
+        bool $isAdmin = false,
+        string $orderBy = 'DESC'
+    ): array
     {
-        return $this->createQueryBuilder('b')
-            ->select('b.id, u.id AS userId, r.id AS resourceId, b.startedAt, b.endedAt, b.status, b.totalPrice, b.createdAt')
-            ->join('b.user', 'u')
-            ->join('b.resource', 'r')
-            ->where('b.user = :user')
-            ->andWhere('b.status NOT IN (:excludedStatuses)')
-            ->setParameter('user', $user)
+        $userId = $user?->getId();
+
+        $resourceId = $startDate = $endDate = $status = null;
+        if ($isAdmin) {
+            $userId = $filters->userId ?? null;
+            $resourceId = $filters->resourceId ?? null;
+            $startDate = $filters->startDate ?? null;
+            $endDate = $filters->endDate ?? null;
+            $status = $filters->status ?? null;
+        }
+
+        $qb = $this->createQueryBuilder('b');
+
+        if ($isAdmin) {
+            $qb->select([
+                'b.id',
+                'b.startedAt',
+                'b.endedAt',
+                'b.status',
+                'b.totalPrice',
+                'b.createdAt',
+                'u.id AS userId',
+                'u.email AS userEmail',
+                'r.id AS resourceId',
+                'r.title AS resourceTitle'
+            ]);
+        } else {
+            $qb->select([
+                'b.id',
+                'b.startedAt',
+                'b.endedAt',
+                'b.status',
+                'b.totalPrice',
+                'r.title AS resourceTitle'
+            ]);
+        }
+
+        $qb->join('b.resource', 'r')
+            ->join('b.user', 'u');
+
+        if ($userId) {
+            $qb->where('b.user = :user')
+                ->setParameter('user', $userId);
+        }
+
+        if ($resourceId) {
+            $qb->andWhere('b.resource = :resource')
+                ->setParameter('resource', $resourceId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('b.startedAt >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            $qb->andWhere('b.endedAt <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        if ($status) {
+            $qb->andWhere('b.status = :status')
+                ->setParameter('status', $status);
+        }
+
+        $qb->andWhere('b.status NOT IN (:excludedStatuses)')
             ->setParameter('excludedStatuses', [BookingStatus::EXPIRED, BookingStatus::CANCELLED, BookingStatus::COMPLETED])
-            ->orderBy('b.createdAt', $orderBy)
-            ->getQuery()
-            ->getArrayResult();
+            ->orderBy('b.createdAt', $orderBy);
+
+        return $qb->getQuery()->getArrayResult();
     }
 }

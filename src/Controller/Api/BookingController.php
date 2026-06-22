@@ -3,7 +3,7 @@
 namespace App\Controller\Api;
 
 use App\DTO\BookingInput;
-use App\DTO\BookingOutput;
+use App\DTO\BookingListFilterInput;
 use App\Entity\Booking;
 use App\Entity\User;
 use App\Enum\BookingStatus;
@@ -12,8 +12,10 @@ use App\Repository\ResourceRepository;
 use App\Service\BookingManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -21,15 +23,21 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 final class BookingController extends AbstractController
 {
     #[Route('/api/bookings', name: 'api_client_bookings', methods: ['GET'])]
-    public function clientBookings(BookingRepository $bookingRepository): JsonResponse
+    public function bookingsList(
+        BookingRepository $bookingRepository,
+        Security $security,
+        #[MapQueryString(validationFailedStatusCode: 400)] ?BookingListFilterInput $filters = null
+    ): JsonResponse
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
-            throw new AccessDeniedException('User is not logged in or has the wrong class.');
+            throw $this->createAccessDeniedException('User is not logged in or has the wrong class.');
         }
 
-        //$bookings = $bookingRepository->findBy(['user' => $this->getUser()], ['createdAt' => 'DESC']);
-        $bookingsOutput = $bookingRepository->findClientBookings($user, 'DESC');
+        $filters ??= new BookingListFilterInput();
+
+        $isAdmin = $security->isGranted('ROLE_ADMIN');
+        $bookingsOutput = $bookingRepository->findBookingsList($isAdmin ? null : $user, $isAdmin ? $filters : null, $isAdmin);
 
         return $this->json($bookingsOutput);
     }
@@ -43,7 +51,7 @@ final class BookingController extends AbstractController
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
-            throw new AccessDeniedException('User is not logged in or has the wrong class.');
+            throw $this->createAccessDeniedException('User is not logged in or has the wrong class.');
         }
 
         $resource = $resourceRepository->find($dtoInput->resourceId);
