@@ -15,7 +15,7 @@ class ValidBookingDatesValidator extends ConstraintValidator
 
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $startedAt = $value->getStartedAtObject('UTC');
-        $endedAt = $value->getEndedAtObject('UTC');
+        $endedAt = $value->getEndedAtObject($startedAt, $value->duration);
 
         if ($startedAt < $now) {
             $this->context->buildViolation($constraint->pastMessage)

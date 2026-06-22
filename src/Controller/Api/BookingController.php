@@ -62,7 +62,7 @@ final class BookingController extends AbstractController
         }
 
         $startedAt = $dtoInput->getStartedAtObject('UTC');
-        $endedAt = $dtoInput->getEndedAtObject('UTC');
+        $endedAt = $dtoInput->getEndedAtObject($startedAt, $dtoInput->duration);
 
         try {
             $bookingOutput = $bookingManager->createBooking($user, $resource, $startedAt, $endedAt);

@@ -14,14 +14,12 @@ class BookingInput
 
     #[Assert\NotBlank]
     // #[Assert\DateTime(\DateTimeInterface::ATOM)]
-    #[Assert\DateTime(format: 'Y-m-d\TH:i:sP', message: 'Date must be in ATOM format (ISO 8601)')]
+    #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'Date must be in ATOM format (ISO 8601)')]
     public string $startedAt;
 
     #[Assert\NotBlank]
-    // #[Assert\DateTime(\DateTimeInterface::ATOM)]
-    #[Assert\DateTime(format: 'Y-m-d\TH:i:sP', message: 'Date must be in ATOM format (ISO 8601)')]
-    // #[Assert\GreaterThan(propertyPath: 'startedAt')] // Not needed, custom validator ValidBookingDatesValidator handles this
-    public string $endedAt;
+    #[Assert\GreaterThanOrEqual(30, message: 'Duration must be at least 30 minutes')]
+    public int $duration;
 
     public function getStartedAtObject($tz = ''): \DateTimeImmutable
     {
@@ -34,14 +32,8 @@ class BookingInput
         return $startedAt;
     }
 
-    public function getEndedAtObject($tz = ''): \DateTimeImmutable
+    public function getEndedAtObject(\DateTimeImmutable $startedAt, int $duration): \DateTimeImmutable
     {
-        $endedAt = new \DateTimeImmutable($this->endedAt);
-
-        if ($tz) {
-            $endedAt->setTimezone(new \DateTimeZone($tz));
-        }
-
-        return $endedAt;
+        return $startedAt->modify("+{$duration} minutes");
     }
 }
