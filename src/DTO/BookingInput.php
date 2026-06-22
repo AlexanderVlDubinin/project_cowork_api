@@ -15,6 +15,7 @@ class BookingInput
     #[Assert\NotBlank]
     // #[Assert\DateTime(\DateTimeInterface::ATOM)]
     #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'Date must be in ATOM format (ISO 8601)')]
+    #[Assert\GreaterThan('now', message: 'Start date must be in the future')]
     public string $startedAt;
 
     #[Assert\NotBlank]

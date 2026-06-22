@@ -114,4 +114,18 @@ class BookingRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getArrayResult();
     }
+
+    public function findBookingsForDate(Resource $resource, \DateTimeImmutable $start, \DateTimeImmutable $end): array
+    {
+        return $this->createQueryBuilder('b')
+            ->where('b.resource = :resource')
+            ->andWhere('b.startedAt < :end')
+            ->andWhere('b.endedAt > :start')
+            ->setParameter('resource', $resource)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->orderBy('b.startedAt', 'ASC') // Important for the gap search algorithm
+            ->getQuery()
+            ->getResult();
+    }
 }

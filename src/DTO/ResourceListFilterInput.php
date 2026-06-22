@@ -15,6 +15,7 @@ class ResourceListFilterInput
 
         //#[Assert\DateTime(format: \DateTimeInterface::ATOM)]
         #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'Start date must be in ATOM format (ISO 8601)')]
+        #[Assert\GreaterThan('now', message: 'Start date must be in the future')]
         public readonly ?string $startDate = null,
 
         //#[Assert\DateTime(format: \DateTimeInterface::ATOM)]
@@ -24,6 +25,9 @@ class ResourceListFilterInput
             message: "The end date must be later than the start date."
         )]
         public readonly ?string $endDate = null,
+
+        #[Assert\GreaterThanOrEqual(30, message: 'Duration must be at least 30 minutes')]
+        public readonly ?int $duration = null,
 
         public readonly ?BookingStatus $status = null,
 

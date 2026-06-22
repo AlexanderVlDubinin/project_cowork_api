@@ -3,58 +3,35 @@
 namespace App\Controller\Api;
 
 use App\DTO\ResourceListFilterInput;
-use App\Enum\ResourceType;
 use App\Repository\ResourceRepository;
+use App\Service\ResourceAvailabilityService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Serializer\SerializerInterface;
 
 final class ResourceClientController extends AbstractController
 {
     #[Route('/api/resources', name: 'api_client_resources', methods: ['GET'])]
     public function index(
-        /*Request $request,*/
         ResourceRepository $repository,
+        ResourceAvailabilityService $resourcesAvailable,
+        SerializerInterface $serializer,
         #[MapQueryString(validationFailedStatusCode: 400)] ?ResourceListFilterInput $filters = null
     ): JsonResponse
     {
-        /*
-        // $userRole = $this->getUser()->getRoles();
-        $typeParam = $request->query->get('type');
-        $enumType = null;
-        //$date = $request->query->get('date');
-
-        if ($typeParam) {
-            $enumType = ResourceType::tryFrom($typeParam);
-
-            if (!$enumType) {
-                $allowedValues = array_map(fn($case) => $case->value, ResourceType::cases());
-
-                return $this->json([
-                    'message' => 'Validation failed',
-                    'errors' => [
-                        'type' => sprintf(
-                            "Invalid value '%s'. Allowed values are: %s.",
-                            $typeParam,
-                            implode(', ', $allowedValues)
-                        )
-                    ],
-                ], Response::HTTP_BAD_REQUEST);
-            }
-        }
-
-        $resources = $repository->findByFilters($enumType, true);
-        */
-
         $filters ??= new ResourceListFilterInput();
 
         $resources = $repository->findListForClientByFilters($filters);
+        $nearestSlots = $resourcesAvailable->findNearestIntervals($resources, $filters);
+        $responseData = $resourcesAvailable->generateResponseData($serializer, $resources, $nearestSlots);
+
+        //dd($responseData);
 
         return $this->json(
-            $resources,
+            $responseData,
             Response::HTTP_OK,
             [],
             [

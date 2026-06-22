@@ -16,6 +16,7 @@ class BookingListFilterInput
 
         //#[Assert\DateTime(format: \DateTimeInterface::ATOM)]
         #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'Start date must be in ATOM format (ISO 8601)')]
+        #[Assert\GreaterThan('now', message: 'Start date must be in the future')]
         public readonly ?string $startDate = null,
 
         //#[Assert\DateTime(format: \DateTimeInterface::ATOM)]
