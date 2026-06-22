@@ -23,7 +23,7 @@ class BookingInput
 
     public function getStartedAtObject($tz = ''): \DateTimeImmutable
     {
-        $startedAt =new \DateTimeImmutable($this->startedAt);
+        $startedAt = new \DateTimeImmutable($this->startedAt);
 
         if ($tz) {
             $startedAt = $startedAt->setTimezone(new \DateTimeZone($tz));

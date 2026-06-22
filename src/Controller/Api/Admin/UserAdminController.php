@@ -13,7 +13,7 @@ final class UserAdminController extends AbstractController
     #[Route('/api/admin/users', name: 'api_admin_users')]
     public function index(UserRepository $userRepository): JsonResponse
     {
-        $users = $userRepository->findAll();
+        $users = $userRepository->findOnlyRegularUsers();
 
         return $this->json(
             $users,

@@ -56,7 +56,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\Column(type: Types::JSON, options: ['jsonb' => true])]
     #[Assert\Choice(choices: [self::ROLE_USER, self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], multiple: true)]
-    #[Groups(['user:read'])]
     private array $roles = [];
 
     #[ORM\Column]

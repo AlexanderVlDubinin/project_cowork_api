@@ -32,4 +32,15 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->persist($user);
         $this->getEntityManager()->flush();
     }
+
+    public function findOnlyRegularUsers(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere("JSONB_CONTAINS(u.roles, :admin) = false")
+            ->andWhere("JSONB_CONTAINS(u.roles, :superAdmin) = false")
+            ->setParameter('admin', json_encode(['ROLE_ADMIN']))
+            ->setParameter('superAdmin', json_encode(['ROLE_SUPER_ADMIN']))
+            ->getQuery()
+            ->getResult();
+    }
 }

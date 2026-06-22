@@ -20,6 +20,15 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Entity'
                 prefix: 'App\Entity'
                 alias: App
+        dql:
+            string_functions:
+                # for MySQL / MariaDB
+                # JSON_EXTRACT: Scienta\DoctrineJsonFunctions\Query\AST\Functions\Mysql\JsonExtract
+                # JSON_CONTAINS: Scienta\DoctrineJsonFunctions\Query\AST\Functions\Mysql\JsonContains
+
+                # for PostgreSQL
+                JSONB_CONTAINS: Scienta\DoctrineJsonFunctions\Query\AST\Functions\Postgresql\JsonbContains
+                JSONB_EXISTS_ANY: Scienta\DoctrineJsonFunctions\Query\AST\Functions\Postgresql\JsonbExistsAny
 
 when@test:
     doctrine:
