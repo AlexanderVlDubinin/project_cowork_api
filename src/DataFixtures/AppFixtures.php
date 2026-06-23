@@ -351,8 +351,8 @@ class AppFixtures extends Fixture
         }
 
         // Future bookings (Next 2 weeks)
-        // ~45% pending, ~45% confirmed, ~5% expired, ~5% cancelled
-        if ($dice <= 45) {
+        // ~10% pending, ~80% confirmed, ~5% expired, ~5% cancelled
+        if ($dice <= 10) {
             return BookingStatus::PENDING;
         }
         if ($dice <= 90) {
