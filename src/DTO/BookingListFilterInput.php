@@ -28,5 +28,23 @@ class BookingListFilterInput
         public readonly ?string $endDate = null,
 
         public readonly ?BookingStatus $status = null,
+
+        #[Assert\Positive(message: 'The limit must be a positive integer.')]
+        public readonly ?int $limit = 10,
+
+        #[Assert\Positive(message: 'The page must be a positive integer.')]
+        public readonly ?int $page = 1
     ) {}
+
+    public function bookingsOutputSort($bookingsOutput): array
+    {
+        usort($bookingsOutput, function ($a, $b) {
+            $startA = $a['startedAt'] ?? '';
+            $startB = $b['startedAt'] ?? '';
+
+            return $startB <=> $startA;
+        });
+
+        return $bookingsOutput;
+    }
 }

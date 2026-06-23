@@ -11,6 +11,7 @@ use App\Repository\BookingRepository;
 use App\Repository\ResourceRepository;
 use App\Service\BookingManager;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +25,7 @@ final class BookingController extends AbstractController
     #[Route('/api/bookings', name: 'api_client_bookings', methods: ['GET'])]
     public function bookingsList(
         BookingRepository $bookingRepository,
+        PaginatorInterface $paginator,
         Security $security,
         #[MapQueryString(validationFailedStatusCode: 400)] ?BookingListFilterInput $filters = null
     ): JsonResponse
@@ -37,8 +39,13 @@ final class BookingController extends AbstractController
 
         $isAdmin = $security->isGranted('ROLE_ADMIN');
         $bookingsOutput = $bookingRepository->findBookingsList($isAdmin ? null : $user, $isAdmin ? $filters : null, $isAdmin);
+        $bookingsOutput = $filters->bookingsOutputSort($bookingsOutput);
 
-        return $this->json($bookingsOutput);
+        $page = $filters->page ?? 1;
+        $limit = $filters->limit ?? 10;
+        $bookingsOutputPagination = $paginator->paginate($bookingsOutput, $page, $limit);
+
+        return $this->json($bookingsOutputPagination);
     }
 
     #[Route('/api/booking', name: 'api_client_booking_create', methods: ['POST'])]

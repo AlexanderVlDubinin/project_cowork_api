@@ -8,6 +8,7 @@ use App\Entity\Resource;
 use App\Repository\ResourceRepository;
 use App\Service\ResourceService;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,14 +30,19 @@ final class ResourceAdminController extends AbstractController
     #[Route('/resources', name: 'api_admin_resources', methods: ['GET'])]
     public function index(
         ResourceRepository $repository,
+        PaginatorInterface $paginator,
         #[MapQueryString(validationFailedStatusCode: 400)] ?ResourceListFilterInput $filters = null
     ): JsonResponse
     {
         $filters ??= new ResourceListFilterInput();
         $resources = $repository->findListForAdminByFilters($filters);
 
+        $page = $filters->page ?? 1;
+        $limit = $filters->limit ?? 10;
+        $resourcesPagination = $paginator->paginate($resources, $page, $limit);
+
         return $this->json(
-            $resources,
+            $resourcesPagination,
             Response::HTTP_OK,
             [],
             [

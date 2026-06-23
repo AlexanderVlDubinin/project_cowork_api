@@ -177,16 +177,26 @@ class ResourceAvailabilityService
             $resourceArray = $serializer->normalize($resource, null, ['groups' => 'resource:read']);
             $slot = $nearestSlots[(string)$resource->getId()];
 
-            $resourceArray['nearest_slot'] = null;
+            // $resourceArray['nearest_slot'] = null;
             if ($slot) {
                 $resourceArray['nearest_slot'] = [
                     'start' => $slot['start']->format(\DateTimeInterface::ATOM),
                     'end' => $slot['end']->format(\DateTimeInterface::ATOM)
                 ];
+
+                $responseData[] = $resourceArray;
             }
 
-            $responseData[] = $resourceArray;
+            // $responseData[] = $resourceArray;
         }
+
+        // sorting by nearest slot start time
+        usort($responseData, function ($a, $b) {
+            $startA = $a['nearest_slot']['start'] ?? '';
+            $startB = $b['nearest_slot']['start'] ?? '';
+
+            return $startA <=> $startB;
+        });
 
         return $responseData;
     }

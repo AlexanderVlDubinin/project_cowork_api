@@ -75,7 +75,7 @@ class ResourceRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
-    public function findListForClientByFilters(ResourceListFilterInput $filters): array
+    public function findListForClientByFilters(?ResourceListFilterInput $filters): array
     {
         $type = $filters->type ?? null;
 

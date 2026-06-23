@@ -109,7 +109,7 @@ class BookingRepository extends ServiceEntityRepository
         }
 
         $qb->andWhere('b.status NOT IN (:excludedStatuses)')
-            ->setParameter('excludedStatuses', [BookingStatus::EXPIRED, BookingStatus::CANCELLED, BookingStatus::COMPLETED])
+            ->setParameter('excludedStatuses', [BookingStatus::EXPIRED, BookingStatus::CANCELLED, BookingStatus::COMPLETED, BookingStatus::NO_SHOW])
             ->orderBy('b.createdAt', $orderBy);
 
         return $qb->getQuery()->getArrayResult();

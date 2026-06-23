@@ -33,6 +33,12 @@ class ResourceListFilterInput
 
         #[Assert\Uuid]
         public readonly ?string $userId = null,
+
+        #[Assert\GreaterThanOrEqual(1, message: 'Page number must be at least 1')]
+        public readonly ?int $page = null,
+
+        #[Assert\GreaterThanOrEqual(1, message: 'Limit must be at least 1')]
+        public readonly ?int $limit = null,
     ) {}
 
     /*
