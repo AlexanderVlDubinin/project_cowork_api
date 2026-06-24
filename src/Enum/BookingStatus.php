@@ -8,6 +8,7 @@ enum BookingStatus: string
 
     case PENDING = 'pending'; // waiting for payment
     case EXPIRED = 'expired'; // time limit for payment expired
+    case FAILED = 'failed'; // payment failed
     case CONFIRMED = 'confirmed'; // payment completed
     case CANCELLED = 'cancelled'; // booking canceled (by client or admin)
     case CHECKED_IN = 'checked_in'; // coworking/room is in use

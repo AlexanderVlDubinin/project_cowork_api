@@ -33,7 +33,12 @@ class ResourceRepository extends ServiceEntityRepository
             $qb->join('resources.bookings', 'b')
                 ->join('b.user', 'u')
                 ->andWhere('b.status NOT IN (:excludedStatuses)')
-                ->setParameter('excludedStatuses', [BookingStatus::EXPIRED, BookingStatus::CANCELLED, BookingStatus::COMPLETED]);
+                ->setParameter('excludedStatuses', [
+                    BookingStatus::FAILED,
+                    BookingStatus::EXPIRED,
+                    BookingStatus::CANCELLED,
+                    BookingStatus::COMPLETED
+                ]);
 
             $qb->addSelect('IDENTITY(b.user) AS userId')
                 ->addSelect('u.email AS userEmail')

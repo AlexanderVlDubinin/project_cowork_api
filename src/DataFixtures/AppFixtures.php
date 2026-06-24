@@ -237,9 +237,9 @@ class AppFixtures extends Fixture
                         $shuffledUsers = $users;
                         shuffle($shuffledUsers); // Shuffle to maintain randomness among available users
 
-                        $isCancelledOrExpired = ($status === BookingStatus::CANCELLED || $status === BookingStatus::EXPIRED);
+                        $isCancelledExpiredFailed = ($status === BookingStatus::CANCELLED || $status === BookingStatus::FAILED || $status === BookingStatus::EXPIRED);
 
-                        if ($isCancelledOrExpired) {
+                        if ($isCancelledExpiredFailed) {
                             // If the booking is cancelled/expired, the user doesn't actually spend time there.
                             // Anyone can be assigned without overlapping conflicts.
                             $randomUser = $shuffledUsers[0];
@@ -310,7 +310,7 @@ class AppFixtures extends Fixture
                         $manager->persist($booking);
 
                         // Track minutes for target occupancy
-                        if (!$isCancelledOrExpired) {
+                        if (!$isCancelledExpiredFailed) {
                             $currentMinutesBooked += $durationMinutes;
                         }
 
@@ -337,9 +337,12 @@ class AppFixtures extends Fixture
 
         if ($isPast) {
             // Past bookings (Last week)
-            // ~85% completed, ~5% expired, ~5% cancelled, ~5% no_show
-            if ($dice <= 85) {
+            // ~80% completed, ~5% failed, ~5% expired, ~5% cancelled, ~5% no_show
+            if ($dice <= 80) {
                 return BookingStatus::COMPLETED;
+            }
+            if ($dice <= 85) {
+                return BookingStatus::FAILED;
             }
             if ($dice <= 90) {
                 return BookingStatus::EXPIRED;
@@ -351,12 +354,15 @@ class AppFixtures extends Fixture
         }
 
         // Future bookings (Next 2 weeks)
-        // ~10% pending, ~80% confirmed, ~5% expired, ~5% cancelled
+        // ~10% pending, ~75% confirmed, ~5% failed,  ~5% expired, ~5% cancelled
         if ($dice <= 10) {
             return BookingStatus::PENDING;
         }
-        if ($dice <= 90) {
+        if ($dice <= 85) {
             return BookingStatus::CONFIRMED;
+        }
+        if ($dice <= 90) {
+            return BookingStatus::FAILED;
         }
         if ($dice <= 95) {
             return BookingStatus::EXPIRED;

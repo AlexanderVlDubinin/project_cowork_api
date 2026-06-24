@@ -31,7 +31,12 @@ class BookingRepository extends ServiceEntityRepository
             ->setParameter('resource', $resource)
             ->setParameter('start', $start)
             ->setParameter('end', $end)
-            ->setParameter('excludedStatuses', [BookingStatus::EXPIRED, BookingStatus::CANCELLED, BookingStatus::COMPLETED]);
+            ->setParameter('excludedStatuses', [
+                BookingStatus::FAILED,
+                BookingStatus::EXPIRED,
+                BookingStatus::CANCELLED,
+                BookingStatus::COMPLETED
+            ]);
 
         return $qb->getQuery()->getSingleScalarResult() > 0;
     }
@@ -109,7 +114,13 @@ class BookingRepository extends ServiceEntityRepository
         }
 
         $qb->andWhere('b.status NOT IN (:excludedStatuses)')
-            ->setParameter('excludedStatuses', [BookingStatus::EXPIRED, BookingStatus::CANCELLED, BookingStatus::COMPLETED, BookingStatus::NO_SHOW])
+            ->setParameter('excludedStatuses', [
+                BookingStatus::FAILED,
+                BookingStatus::EXPIRED,
+                BookingStatus::CANCELLED,
+                BookingStatus::COMPLETED,
+                BookingStatus::NO_SHOW
+            ])
             ->orderBy('b.createdAt', $orderBy);
 
         return $qb->getQuery()->getArrayResult();
