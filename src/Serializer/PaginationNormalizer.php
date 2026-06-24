@@ -16,7 +16,7 @@ class PaginationNormalizer implements NormalizerInterface, NormalizerAwareInterf
         private readonly UrlGeneratorInterface $urlGenerator
     ) {}
 
-    public function normalize($data, string $format = null, array $context = []): array
+    public function normalize($data, ?string $format = null, array $context = []): array
     {
         /** @var SlidingPagination $data */
         $page = $data->getCurrentPageNumber();
@@ -65,7 +65,7 @@ class PaginationNormalizer implements NormalizerInterface, NormalizerAwareInterf
         ];
     }
 
-    public function supportsNormalization($data, string $format = null, array $context = []): bool
+    public function supportsNormalization($data, ?string $format = null, array $context = []): bool
     {
         return $data instanceof SlidingPagination;
     }

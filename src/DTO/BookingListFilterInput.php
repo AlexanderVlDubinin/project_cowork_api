@@ -14,17 +14,10 @@ class BookingListFilterInput
         #[Assert\Uuid(message: 'The resource ID must have a Uuid type.')]
         public readonly ?string $resourceId = null,
 
-        //#[Assert\DateTime(format: \DateTimeInterface::ATOM)]
         #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'Start date must be in ATOM format (ISO 8601)')]
-        #[Assert\LessThan('now', message: 'Start date must be in the future')]
-        public readonly ?string $startDate = null,
+        public ?string $startDate = null,
 
-        //#[Assert\DateTime(format: \DateTimeInterface::ATOM)]
         #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'End date must be in ATOM format (ISO 8601)')]
-        #[Assert\GreaterThan(
-            propertyPath: 'startDate',
-            message: "The end date must be later than the start date."
-        )]
         public readonly ?string $endDate = null,
 
         public readonly ?BookingStatus $status = null,
@@ -35,6 +28,24 @@ class BookingListFilterInput
         #[Assert\Positive(message: 'The page must be a positive integer.')]
         public readonly ?int $page = 1
     ) {}
+
+    #[Assert\IsFalse(message: 'Start date must be in the future')]
+    public function isStartDateInPast(): bool
+    {
+        if (empty($this->startDate)) {
+            return false; // no error when empty startDate
+        }
+        return new \DateTimeImmutable($this->startDate) <= new \DateTimeImmutable('now');
+    }
+
+    #[Assert\IsFalse(message: 'The end date must be later than the start date.')]
+    public function isEndDateBeforeStartDate(): bool
+    {
+        if (empty($this->startDate) || empty($this->endDate)) {
+            return false; // skip if when empty startDate or endDate
+        }
+        return $this->endDate <= $this->startDate;
+    }
 
     public function bookingsOutputSort($bookingsOutput): array
     {

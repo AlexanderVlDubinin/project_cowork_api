@@ -22,7 +22,7 @@ class BookingManager
         Resource $resource,
         \DateTimeImmutable $start,
         \DateTimeImmutable $end
-    ): BookingOutput {
+    ): Booking {
 
         $isStartCorrect = $this->isWorkingHours($start);
         if (!$isStartCorrect) {
@@ -49,7 +49,7 @@ class BookingManager
         $this->entityManager->persist($booking);
         $this->entityManager->flush();
 
-        return BookingOutput::getBookingOutput($booking);
+        return $booking;
     }
 
     private function calculatePrice(

@@ -4,6 +4,7 @@ namespace App\Controller\Api;
 
 use App\DTO\BookingInput;
 use App\DTO\BookingListFilterInput;
+use App\DTO\BookingOutput;
 use App\Entity\Booking;
 use App\Entity\User;
 use App\Enum\BookingStatus;
@@ -72,7 +73,8 @@ final class BookingController extends AbstractController
         $endedAt = $dtoInput->getEndedAtObject($startedAt, $dtoInput->duration);
 
         try {
-            $bookingOutput = $bookingManager->createBooking($user, $resource, $startedAt, $endedAt);
+            $booking = $bookingManager->createBooking($user, $resource, $startedAt, $endedAt);
+            $bookingOutput = BookingOutput::getBookingOutput($booking);
             return $this->json($bookingOutput, Response::HTTP_CREATED);
         } catch (\LogicException $e) {
             return $this->json([

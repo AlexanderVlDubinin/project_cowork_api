@@ -13,21 +13,14 @@ class ResourceListFilterInput
 
         public readonly ?bool $active = null,
 
-        //#[Assert\DateTime(format: \DateTimeInterface::ATOM)]
         #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'Start date must be in ATOM format (ISO 8601)')]
-        #[Assert\LessThan('now', message: 'Start date must be in the future')]
-        public readonly ?string $startDate = null,
+        public ?string $startDate = null,
 
-        //#[Assert\DateTime(format: \DateTimeInterface::ATOM)]
         #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'End date must be in ATOM format (ISO 8601)')]
-        #[Assert\GreaterThan(
-            propertyPath: 'startDate',
-            message: "The end date must be later than the start date."
-        )]
         public readonly ?string $endDate = null,
 
         #[Assert\GreaterThanOrEqual(30, message: 'Duration must be at least 30 minutes')]
-        public readonly ?int $duration = null,
+        public ?int $duration = null,
 
         public readonly ?BookingStatus $status = null,
 
@@ -47,4 +40,22 @@ class ResourceListFilterInput
         return !empty(array_filter(get_object_vars($this), fn($val) => $val !== null));
     }
     */
+
+    #[Assert\IsFalse(message: 'Start date must be in the future')]
+    public function isStartDateInPast(): bool
+    {
+        if (empty($this->startDate)) {
+            return false; // no error when empty startDate
+        }
+        return new \DateTimeImmutable($this->startDate) <= new \DateTimeImmutable('now');
+    }
+
+    #[Assert\IsFalse(message: 'The end date must be later than the start date.')]
+    public function isEndDateBeforeStartDate(): bool
+    {
+        if (empty($this->startDate) || empty($this->endDate)) {
+            return false; // skip if when empty startDate or endDate
+        }
+        return $this->endDate <= $this->startDate;
+    }
 }
