@@ -46,6 +46,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: symfony_mailpit
+    ports:
+      - "8025:8025"
+    networks:
+      - symfony
 
 volumes:
   postgres_data:

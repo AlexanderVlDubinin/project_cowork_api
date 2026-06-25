@@ -8,17 +8,21 @@ use App\DTO\BookingOutput;
 use App\Entity\Booking;
 use App\Entity\User;
 use App\Enum\BookingStatus;
+use App\Message\SendEmailNotificationMessage;
 use App\Repository\BookingRepository;
 use App\Repository\ResourceRepository;
 use App\Service\BookingManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class BookingController extends AbstractController
@@ -85,7 +89,12 @@ final class BookingController extends AbstractController
     }
 
     #[Route('/api/booking/{id}', name: 'api_client_booking_cancel', methods: ['DELETE'])]
-    public function cancelBooking(Booking $booking, EntityManagerInterface $entityManager): JsonResponse
+    public function cancelBooking(
+        Booking $booking,
+        EntityManagerInterface $entityManager,
+        MessageBusInterface $messageBus,
+        LoggerInterface $logger
+    ): JsonResponse
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
@@ -105,6 +114,14 @@ final class BookingController extends AbstractController
 
         $booking->setStatus(BookingStatus::CANCELLED);
         $entityManager->flush();
+
+        //Sending an asynchronous cancellation notification
+        $bookingId = $booking->getId();
+        try {
+            $messageBus->dispatch(new SendEmailNotificationMessage($bookingId, BookingStatus::CANCELLED));
+        } catch (ExceptionInterface $e) {
+            $logger->critical('Could not place message in Messenger queue: ' . $e->getMessage());
+        }
 
         return $this->json(['message' => 'Booking cancelled successfully.'], Response::HTTP_OK);
     }

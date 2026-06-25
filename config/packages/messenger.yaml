@@ -6,6 +6,8 @@ framework:
             # https://symfony.com/doc/current/messenger.html#transport-configuration
             async:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: async_notifications
                 retry_strategy:
                     max_retries: 3
                     multiplier: 2
@@ -24,3 +26,7 @@ framework:
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async
+
+            # Sending events to asynchronous transport
+            'App\Message\SendEmailNotificationMessage': async
+            'App\Message\CheckBookingTimeoutMessage': async

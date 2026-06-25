@@ -1,0 +1,16 @@
+<h1>Hello!</h1>
+<p>You have successfully booked a resource: <strong>{{ resourceTitle }}</strong>.</p>
+<p>Amount to be paid: <strong>${{ totalPrice }}</strong>.</p>
+
+<div style="background-color: #fff3cd; padding: 15px; border: 1px solid #ffeeba; margin: 20px 0;">
+    <strong>Attention:</strong> Please pay for your booking within {{ paymentDelay }} minutes, otherwise it will be automatically cancelled.
+</div>
+
+<p>
+    <a href="{{ paymentUrl }}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+        Proceed to payment
+    </a>
+    <i style="color: #999;">
+        Imitation of a button to go to the payment URL. Use the 'Client Payment' endpoint in Postman.
+    </i>
+</p>

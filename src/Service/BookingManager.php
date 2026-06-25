@@ -2,19 +2,27 @@
 
 namespace App\Service;
 
-use App\DTO\BookingOutput;
 use App\Entity\Booking;
 use App\Entity\Resource;
 use App\Entity\User;
 use App\Enum\BookingStatus;
+use App\Message\CheckBookingTimeoutMessage;
+use App\Message\SendEmailNotificationMessage;
 use App\Repository\BookingRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 
 class BookingManager
 {
     public function __construct(
         private readonly BookingRepository      $bookingRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly MessageBusInterface    $messageBus,
+        private readonly LoggerInterface        $logger,
+        private readonly int                    $bookingPaymentDelay,
     ) {}
 
     public function createBooking(
@@ -48,6 +56,32 @@ class BookingManager
 
         $this->entityManager->persist($booking);
         $this->entityManager->flush();
+
+        $bookingId = $booking->getId();
+
+        // Instant notification of booking creation
+        try {
+            $this->messageBus->dispatch(new SendEmailNotificationMessage($bookingId, BookingStatus::PENDING));
+        } catch (ExceptionInterface $e) {
+            $this->logger->error('Error in queuing the notification: ' . $e->getMessage(), [
+                'booking_id' => $bookingId->toString(),
+                'status' => $booking->getStatus()->value
+            ]);
+        }
+
+        // Payment verification task delayed for <BOOKING_PAYMENT_DELAY> minutes (<BOOKING_PAYMENT_DELAY> * 60 * 1000 ms)
+        $delay = $this->bookingPaymentDelay * 60 * 1000;
+        try {
+            $this->messageBus->dispatch(
+                new CheckBookingTimeoutMessage($bookingId),
+                [new DelayStamp($delay)]
+            );
+        } catch (ExceptionInterface $e) {
+            $this->logger->critical('CRITICAL ERROR: Booking timeout check could not be scheduled: ' . $e->getMessage(), [
+                'booking_id' => $bookingId->toString()
+            ]);
+            throw new \RuntimeException('Booking confirmation failed due to queue error.');
+        }
 
         return $booking;
     }
