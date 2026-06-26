@@ -24,6 +24,7 @@ class SendEmailNotificationHandler
         private readonly string            $defaultFromName,
         private readonly int               $bookingPaymentDelay,
         private readonly string            $paymentBaseUrl,
+        private readonly int                $noShowDelay,
     ) {}
 
     public function __invoke(SendEmailNotificationMessage $message): void
@@ -41,6 +42,7 @@ class SendEmailNotificationHandler
             ->from(new Address($this->defaultFromEmail, $this->defaultFromName))
             ->to($userEmail);
 
+        $totalPrice = $booking->getTotalPrice() / 100; // Converting cents to dollars
         switch ($message->getType()) {
             case BookingStatus::PENDING:
                 $email->subject('Your booking has been created! Waiting for payment')
@@ -49,7 +51,7 @@ class SendEmailNotificationHandler
                         'resourceTitle' => $resourceTitle,
                         'paymentDelay' => $this->bookingPaymentDelay,
                         'paymentUrl' => $paymentUrl,
-                        'totalPrice' => $booking->getTotalPrice() / 100, // Converting cents to dollars
+                        'totalPrice' => $totalPrice,
                     ]);
                 break;
 
@@ -59,7 +61,27 @@ class SendEmailNotificationHandler
                     ->context([
                         'resourceTitle' => $resourceTitle,
                         'paymentDelay' => $this->bookingPaymentDelay,
-                        'totalPrice' => $booking->getTotalPrice() / 100,
+                        'totalPrice' => $totalPrice,
+                    ]);
+                break;
+
+            case BookingStatus::FAILED:
+                $email->subject('Booking failed')
+                    ->htmlTemplate('emails/booking_failed.html.twig')
+                    ->context([
+                        'resourceTitle' => $resourceTitle,
+                        'totalPrice' => $totalPrice,
+                    ]);
+                break;
+
+            case BookingStatus::CONFIRMED:
+                $email->subject('Booking payment confirmed')
+                    ->htmlTemplate('emails/booking_confirmed.html.twig')
+                    ->context([
+                        'resourceTitle' => $resourceTitle,
+                        'totalPrice' => $totalPrice,
+                        'startedAt' => $booking->getStartedAt()->format('Y-m-d H:i:s'),
+                        'endedAt' => $booking->getEndedAt()->format('Y-m-d H:i:s'),
                     ]);
                 break;
 
@@ -68,6 +90,23 @@ class SendEmailNotificationHandler
                     ->htmlTemplate('emails/booking_cancelled.html.twig')
                     ->context([
                         'resourceTitle' => $resourceTitle,
+                    ]);
+                break;
+
+            case BookingStatus::COMPLETED:
+                $email->subject('Booking completed')
+                    ->htmlTemplate('emails/booking_completed.html.twig')
+                    ->context([
+                        'resourceTitle' => $resourceTitle,
+                    ]);
+                break;
+
+            case BookingStatus::NO_SHOW:
+                $email->subject('Booking Cancelled (No-Show)')
+                    ->htmlTemplate('emails/booking_no_show.html.twig')
+                    ->context([
+                        'resourceTitle' => $resourceTitle,
+                        'noShowDelay' => $this->noShowDelay,
                     ]);
                 break;
         }

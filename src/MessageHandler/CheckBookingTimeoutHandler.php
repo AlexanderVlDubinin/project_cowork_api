@@ -6,6 +6,7 @@ use App\Enum\BookingStatus;
 use App\Message\CheckBookingTimeoutMessage;
 use App\Message\SendEmailNotificationMessage;
 use App\Repository\BookingRepository;
+use App\Repository\PaymentTransactionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -19,6 +20,7 @@ class CheckBookingTimeoutHandler
 {
     public function __construct(
         private readonly BookingRepository      $bookingRepository,
+        private readonly PaymentTransactionRepository $transactionRepository,
         private readonly EntityManagerInterface $em,
         private readonly LoggerInterface        $logger,
         private readonly MessageBusInterface $messageBus
@@ -33,14 +35,18 @@ class CheckBookingTimeoutHandler
             return;
         }
 
-        // Changing the status to expired
-        $booking->setStatus(BookingStatus::EXPIRED);
+        $transactions = $this->transactionRepository->findBy(['booking' => $booking->getId()]);
+
+        $status = empty($transactions) ? BookingStatus::EXPIRED : BookingStatus::FAILED;
+
+        // Changing the status to expired or failed
+        $booking->setStatus($status);
         $this->em->flush();
 
         // Generating an asynchronous email notification event
         try {
             $this->messageBus->dispatch(
-                new SendEmailNotificationMessage($booking->getId(), BookingStatus::EXPIRED)
+                new SendEmailNotificationMessage($booking->getId(), $status)
             );
         } catch (ExceptionInterface $e) {
             $this->logger->error('Could not put the expiration email in the queue: ' . $e->getMessage(), [

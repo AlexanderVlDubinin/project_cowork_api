@@ -12,7 +12,8 @@ class ResourceAvailabilityService
     private const WORK_END = 20;
 
     public function __construct(
-        private readonly BookingRepository $bookingRepository
+        private readonly BookingRepository $bookingRepository,
+        private readonly int $bookingTechBreak,
     ) {}
 
     /**
@@ -20,7 +21,7 @@ class ResourceAvailabilityService
      */
     public function findNearestIntervals( array $resources, ResourceListFilterInput $filters): array {
         $durationMinutes = $filters->duration ?? 30; // Default duration
-        $techBreakInterval = 5;
+        $techBreakInterval = $this->bookingTechBreak;
 
         $searchFrom =$this->getSearchFrom($filters);
         if (empty($searchFrom)) {
@@ -111,7 +112,7 @@ class ResourceAvailabilityService
 
         // Checking at the end of the working day (after all available bookings)
         // A: New booking + a break can be fully accommodated until 20:00
-        $totalNeededTime = new \DateInterval("PT" . ($durationMinutes + 5) . "M");
+        $totalNeededTime = new \DateInterval("PT" . ($durationMinutes + $this->bookingTechBreak) . "M");
 
         if ($currentPointer->add($totalNeededTime) <= $workDayEnd) {
             return [

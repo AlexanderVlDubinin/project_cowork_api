@@ -30,3 +30,5 @@ framework:
             # Sending events to asynchronous transport
             'App\Message\SendEmailNotificationMessage': async
             'App\Message\CheckBookingTimeoutMessage': async
+            'App\Message\CheckNoShowMessage': async
+            'App\Message\CheckCompletionMessage': async

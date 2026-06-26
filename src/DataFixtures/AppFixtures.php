@@ -24,6 +24,7 @@ class AppFixtures extends Fixture
         UserPasswordHasherInterface $passwordHasher,
         UserRepository $userRepository,
         ResourceRepository $repository,
+        private readonly int $bookingTechBreak,
     )
     {
         $this->passwordHasher = $passwordHasher;
@@ -278,7 +279,7 @@ class AppFixtures extends Fixture
                         // If all 50 users are busy at this exact time (rare, but possible),
                         // skip this specific slot creation to avoid data corruption and move forward
                         if ($randomUser === null) {
-                            $timelinePointer = $bookingEnd->modify('+5 minutes');
+                            $timelinePointer = $bookingEnd->modify('+'.$this->bookingTechBreak.' minutes');
                             continue;
                         }
 
@@ -315,7 +316,7 @@ class AppFixtures extends Fixture
                         }
 
                         // 7. Move timeline pointer forward + 5 minutes Technical Break
-                        $timelinePointer = $bookingEnd->modify('+5 minutes');
+                        $timelinePointer = $bookingEnd->modify('+'.$this->bookingTechBreak.' minutes');
 
                         if ($currentMinutesBooked >= $targetMinutesForPeriod) {
                             break;

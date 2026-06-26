@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Enum\BookingStatus;
 use App\Repository\BookingRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -57,9 +59,16 @@ class Booking
     #[Groups(['booking:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
+    /**
+     * @var Collection<int, PaymentTransaction>
+     */
+    #[ORM\OneToMany(targetEntity: PaymentTransaction::class, mappedBy: 'booking', orphanRemoval: true)]
+    private Collection $paymentTransactions;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $this->paymentTransactions = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -147,6 +156,36 @@ class Booking
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, PaymentTransaction>
+     */
+    public function getPaymentTransactions(): Collection
+    {
+        return $this->paymentTransactions;
+    }
+
+    public function addPaymentTransaction(PaymentTransaction $paymentTransaction): static
+    {
+        if (!$this->paymentTransactions->contains($paymentTransaction)) {
+            $this->paymentTransactions->add($paymentTransaction);
+            $paymentTransaction->setBooking($this);
+        }
+
+        return $this;
+    }
+
+    public function removePaymentTransaction(PaymentTransaction $paymentTransaction): static
+    {
+        if ($this->paymentTransactions->removeElement($paymentTransaction)) {
+            // set the owning side to null (unless already changed)
+            if ($paymentTransaction->getBooking() === $this) {
+                $paymentTransaction->setBooking(null);
+            }
+        }
 
         return $this;
     }
