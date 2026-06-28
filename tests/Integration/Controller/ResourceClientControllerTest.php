@@ -15,7 +15,6 @@ class ResourceClientControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $em;
-    private Resource $testResource;
     private UserPasswordHasherInterface $passwordHasher;
     private string $jwtToken;
 
@@ -55,13 +54,13 @@ class ResourceClientControllerTest extends WebTestCase
 
         for ($i = 1; $i <= 12; $i++) {
             // test resource
-            $this->testResource = new Resource();
-            $this->testResource->setTitle('Test Desk № '.$i);
-            $this->testResource->setType(ResourceType::DESK);
-            $this->testResource->setDescription('Test Desk № '.$i.' Description');
-            $this->testResource->setIsActive(true);
-            $this->testResource->setPricePerHour(500);
-            $this->em->persist($this->testResource);
+            $testResource = new Resource();
+            $testResource->setTitle('Test Desk № '.$i);
+            $testResource->setType(ResourceType::DESK);
+            $testResource->setDescription('Test Desk № '.$i.' Description');
+            $testResource->setIsActive(true);
+            $testResource->setPricePerHour(500);
+            $this->em->persist($testResource);
         }
 
         $this->em->flush();
