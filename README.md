@@ -67,7 +67,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 - Testing via **time manipulation** (`now - 11 minutes`) to instantly check background processes.
 
 ### ➕ Additionally
-- **Data fixtures:** Auto-complete the database with the history of completed bookings for the past week and future upcoming bookings for 2 weeks ahead. The following users are created by fixtures: Super User (`ROLE_SUPER_ADMIN', Email: superadmin@example.com , Password: superpass123!); Admin (`ROLE_ADMIN', Email: admin1@example.com - admin4@example.com , Password: admin123456), Regular user (`ROLE_USER', Email: random - see the endpoint Users List, Password: qwerty123456).
+- **Data fixtures:** Auto-complete the database with the history of completed bookings for the past week and future upcoming bookings for 2 weeks ahead. The following users are created by fixtures: Super User (`ROLE_SUPER_ADMIN', Email: 'superadmin@example.com', Password: 'superpass123!'); Admin (`ROLE_ADMIN', Email: 'admin1@example.com' - 'admin4@example.com', Password: 'admin123456'), Regular user (`ROLE_USER', Email: random - see the endpoint Users List, Password: 'qwerty123456').
 - **Pagination:** Page-by-page output (`page`, `limit`) is integrated into absolutely all API lists.
 
 ---
@@ -105,7 +105,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 * `POST /api/login_check` (User login (public)) — Getting a JWT token.
   * **Body example (JSON):** `{"username": " user1@example.com ", "password": "qwerty123456"}`
 * `GET /api/admin/users` (Users List (admin)) — List of users *(Admin only)*.
-  * ** Query parameters (DTO Filter):** `page' (default 1), `limit' (default 10).
+  * **Query parameters (DTO Filter):** `page' (default 1), `limit' (default 10).
 
 ### 🛠 Resource Management *(Admin Only)*
 * `GET /api/admin/resources` — An end-to-end list of all resources with pagination and history.
@@ -127,7 +127,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 * `POST /api/booking` (Booking Create (client)) — Making a reservation (reserves a slot with the `pending` status for 15 minutes).
   * **Body example (JSON DTO):** `{"resourceId": " 019ef838-c0d4-7a77-b817-a5cdb460d662", "startedAt": "2026-07-10T10:00:00Z", "duration": 120}` *( resourceId  - UUID, startedAt - ATOM ISO 8601, duration in minutes)*
 * `GET /api/bookings/{id}` (Booking Cancel (admin/client)) — The endpoint of the booking cancel.
-  * **For the Admin/Client ((`ROLE_ADMIN`/`ROLE_USER`):** Cancels the booking (changes the status to `cancelled`).
+  * **For the Admin/Client (`ROLE_ADMIN`/`ROLE_USER`):** Cancels the booking (changes the status to `cancelled`).
 * `POST /api/booking/{id}/pay` (Booking Payment (client)) — The intention to pay. Generates a transaction session.
   * **Response (JSON):** `{"status": "pending", "payment_token": "ch_fake_d92b2afb0ee5", "redirect_url": "https://mock-payment-gateway.com/ch_fake_d92b2afb0ee5 "}`
 * `POST /api/booking/{id}/check_in` (Booking Check In (client)) — Confirmation of the client's presence (activation of the reservation). Available as part of the `bookingTechBreak` buffer (5 minutes before the start).
