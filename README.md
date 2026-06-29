@@ -109,7 +109,7 @@ The collection file **`Coworking_API.postman_collection.json`** has been added t
 
 ## 📋 Interactive documentation of API endpoints
 
-* All endpoints, except for public webhooks and authorization, require the header `Authorization: Bearer <JWT_TOKEN>`.
+* All endpoints, with the exception of public web sites and authorization, require Authorization `Auth Type` - `Bearer Token` and `Token` - `<JWT_TOKEN>` (or the `{{cowork_jwt}}` variable).
 
 ### 🔐 Authentication and Users
 * `POST /api/register` (**User registration**  (public)) — User registration.
