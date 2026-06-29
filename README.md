@@ -12,7 +12,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 * **Database:** PostgreSQL 16 (UUIDv7 primary keys, indexes, JSONB gateway logging)
 * **Asynchronous Layer:** Symfony Messenger (Transport: `doctrine://default?auto_setup=0`)
 * **Email Debugging:** Mailpit (built-in SMTP server with Web interface)
-* **Environment:** Docker & Docker Compose (containers: `symfony_nginx', `symfony_php', `symfony_postgres', `symfony_mailpit')
+* **Environment:** Docker & Docker Compose (containers: `symfony_nginx`, `symfony_php`, `symfony_postgres`, `symfony_mailpit`)
 * **Authentication:** JWT (JSON Web Tokens) via `lexik/jwt-authentication-bundle`
 * **Testing:** PHPUnit 13
 
@@ -21,8 +21,8 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 ## 📐 Business rules & System logic
 
 1. **Coworking mode of operation:** The booking service and resources are available strictly on weekdays (Mon-Fri) from 08:00 to 20:00. Requests outside this interval are rejected by the validator.
-2. **Overbooking protection (Race Conditions):** Time interval intersection control is encapsulated in the `BookingManager'. At the DBMS level, a composite index is deployed for the fields `(resource_id, started_at, ended_at)` to block parallel overlaps in time.
-3. **Idempotence of payments:** The 'payment_transactions` table acts as a buffer. Repeated webhooks from the bank are processed without changing the entities, returning the status `already_processed'.
+2. **Overbooking protection (Race Conditions):** Time interval intersection control is encapsulated in the `BookingManager`. At the DBMS level, a composite index is deployed for the fields `(resource_id, started_at, ended_at)` to block parallel overlaps in time.
+3. **Idempotence of payments:** The `payment_transactions` table acts as a buffer. Repeated webhooks from the bank are processed without changing the entities, returning the status `already_processed'.
 4. **Life Cycle Automation:** Monitoring of payment timeouts (15 min), No-Show customers (10 min) and lease completion (Completion) is implemented asynchronously via `Symfony Messenger (DelayStamp)`.
 
 ---
@@ -45,8 +45,8 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 - DTOs have been developed for incoming booking parameters and end-to-end list filters.
 
 ### 🧪 Stage 4: Testing the Kernel (PHPUnit 13)
-- Unit tests for checking intersection mathematics in the `BookingManager'.
-- Unit tests for resource availability during coworking business hours (weekdays from 8 to 20).
+- Unit tests for checking intersection mathematics in the `BookingManager`.
+- Unit tests for resource availability during coworking business hours (weekdays from 08:00 to 20:00).
 - Integration test for race status and return of the `409 Conflict` status.
 - Full integration coverage of CRUD resources for the admin and lists for the client.
 - Integration tests for Booking (lists, creation, intersections, invalid parameters).
@@ -55,15 +55,15 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 - Isolated background sending of notification emails via the message bus.
 - Built-in **Mailpit** for local interception and viewing of all sent emails in a beautiful web interface.
 - Automatic cancellation of `pending` bookings that are not paid on time (transfer to the `expired` status).
-- Asynchronous alerts for manual cancellation of bookings (`cancelled').
+- Asynchronous alerts for manual cancellation of bookings (`cancelled`).
 
 ### 💳 Stage 6: Two-Step Payment, Webhooks and Check-In
 - The endpoint of the initiation of the `/pay` payment session with transaction fixation and token generation.
 - Endpoint of the webhook `/api/webhooks/payment` with validation of fraudulent requests (comparison of the transmitted `amount` and `type`).
-- Automatic notification of successful booking (status `confirmed'). Transfer to `failed` for invalid events/amounts.
-- The 'check_in' system (QR code scanning), taking into account a 5-minute technical break (`bookingTechBreak').
-- A worker for automatic cancellation of a reservation in case of no-show within 10 minutes after the start (`no_show').
-- Automatic notification of booking completion (status `completed').
+- Automatic notification of successful booking (status `confirmed`). Transfer to `failed` for invalid events/amounts.
+- The 'check_in' system (QR code scanning), taking into account a 5-minute technical break (`bookingTechBreak`).
+- A worker for automatic cancellation of a reservation in case of no-show within 10 minutes after the start (`no_show`).
+- Automatic notification of booking completion (status `completed`).
 - Testing via **time manipulation** (`now - 11 minutes`) to instantly check background processes.
 
 ### ➕ Additionally
@@ -97,7 +97,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 
 ## 📋 Interactive documentation of API endpoints
 
-* All endpoints, except for public webhooks and authorization, require the header `Authorization: Bearer <JWT_TOKEN>`.*
+* All endpoints, except for public webhooks and authorization, require the header `Authorization: Bearer <JWT_TOKEN>`.
 
 ### 🔐 Authentication and Users
 * `POST /api/register` (User registration  (public)) — User registration.
@@ -105,7 +105,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 * `POST /api/login_check` (User login (public)) — Getting a JWT token.
   * **Body example (JSON):** `{"username": " user1@example.com ", "password": "qwerty123456"}`
 * `GET /api/admin/users` (Users List (admin)) — List of users *(Admin only)*.
-  * **Query parameters (DTO Filter):** `page' (default 1), `limit' (default 10).
+  * **Query parameters (DTO Filter):** `page` (default 1), `limit` (default 10).
 
 ### 🛠 Resource Management *(Admin Only)*
 * `GET /api/admin/resources` — An end-to-end list of all resources with pagination and history.
@@ -126,15 +126,15 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
   * **Query Parameters (DTO Filter):** (available only to admin) `userId` (UUID), `resourceId` (UUID), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (Enum value), `page` (int), `limit` (int).
 * `POST /api/booking` (Booking Create (client)) — Making a reservation (reserves a slot with the `pending` status for 15 minutes).
   * **Body example (JSON DTO):** `{"resourceId": " 019ef838-c0d4-7a77-b817-a5cdb460d662", "startedAt": "2026-07-10T10:00:00Z", "duration": 120}` *( resourceId  - UUID, startedAt - ATOM ISO 8601, duration in minutes)*
-* `GET /api/bookings/{id}` (Booking Cancel (admin/client)) — The endpoint of the booking cancel.
+* `GET /api/bookings/{id}` (Booking Cancel (admin/client)) — The endpoint of the booking cancel by its UUID.
   * **For the Admin/Client (`ROLE_ADMIN`/`ROLE_USER`):** Cancels the booking (changes the status to `cancelled`).
 * `POST /api/booking/{id}/pay` (Booking Payment (client)) — The intention to pay. Generates a transaction session.
-  * **Response (JSON):** `{"status": "pending", "payment_token": "ch_fake_d92b2afb0ee5", "redirect_url": "https://mock-payment-gateway.com/ch_fake_d92b2afb0ee5 "}`
+  * **Response (JSON):** `{"status": "pending", "payment_token": "ch_fake_d92b2afb0ee5", "redirect_url": "https://mock-payment-gateway.com/ch_fake_d92b2afb0ee5"}`
 * `POST /api/booking/{id}/check_in` (Booking Check In (client)) — Confirmation of the client's presence (activation of the reservation). Available as part of the `bookingTechBreak` buffer (5 minutes before the start).
 
 ### 💳 Public Gateway Webhooks (`PUBLIC_ACCESS`)
 * `POST /api/webhooks/payment` (Webhook (public)) — Asynchronous receipt of notifications from the payment system.
-** Request body example (JSON для Postman):**
+**Request body example (JSON для Postman):**
 ```json
 {
   "type": "payment.succeeded",
