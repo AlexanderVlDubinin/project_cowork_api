@@ -19,7 +19,14 @@ class ResourceAvailabilityTest extends TestCase
     protected function setUp(): void
     {
         $this->bookingRepositoryStub = $this->createStub(BookingRepository::class);
-        $this->service = new ResourceAvailabilityService($this->bookingRepositoryStub);
+
+        // A stub for break
+        $bookingTechBreak = 5;
+
+        $this->service = new ResourceAvailabilityService(
+            $this->bookingRepositoryStub,
+            $bookingTechBreak
+        );
     }
 
     // Resource entity creation helper for tests
