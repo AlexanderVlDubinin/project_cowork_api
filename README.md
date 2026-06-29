@@ -100,40 +100,40 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 * All endpoints, except for public webhooks and authorization, require the header `Authorization: Bearer <JWT_TOKEN>`.
 
 ### 🔐 Authentication and Users
-* `POST /api/register` (User registration  (public)) — User registration.
+* `POST /api/register` (**User registration**  (public)) — User registration.
   * **Body example (JSON DTO):** `{"fullName": "Test User 1", "email": "user1@example.com", "password": "qwerty123456"}`
-* `POST /api/login_check` (User login (public)) — Getting a JWT token.
+* `POST /api/login_check` (**User login** (public)) — Getting a JWT token.
   * **Body example (JSON):** `{"username": " user1@example.com ", "password": "qwerty123456"}`
-* `GET /api/admin/users` (Users List (admin)) — List of users *(Admin only)*.
+* `GET /api/admin/users` (**Users List** (admin)) — List of users *(Admin only)*.
   * **Query parameters (DTO Filter):** `page` (default 1), `limit` (default 10).
 
 ### 🛠 Resource Management *(Admin Only)*
-* `GET /api/admin/resources` — An end-to-end list of all resources with pagination and history.
+* `GET /api/admin/resources` (**Resources List** (admin)) — An end-to-end list of all resources with pagination and history.
   * **Query-параметры (DTO Фильтр):** `userId` (UUID), `type` (`desk`|`meeting_room`), `isActive` (bool), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (string), `page` (int), `limit` (int).
-* `POST /api/admin/resource` (Resource Create (admin)) — Creating a new resource.
+* `POST /api/admin/resource` (**Resource Create** (admin)) — Creating a new resource.
   * **Body example (JSON DTO):** `{"title": "Desk № 12", "type": "desk", "description": "With monitor 27", "isActive": true, "pricePerHour": 500}`*( pricePerHour in cents)*.
-* `GET /api/admin/resource/{id}` (Resource Show (admin)) — Viewing a specific resource by its UUID.
-* `PUT /api/admin/resource/{id}` (Resource Update (admin)) — Full resource update.
+* `GET /api/admin/resource/{id}` (**Resource Show** (admin)) — Viewing a specific resource by its UUID.
+* `PUT /api/admin/resource/{id}` (**Resource Update** (admin)) — Full resource update.
   * **Body example (JSON DTO):** The structure is similar to the creation POST request.
-* `DELETE /api/admin/resource/{id}` (Resource Delete (admin)) — Removing a resource from the system.
+* `DELETE /api/admin/resource/{id}` (**Resource Delete** (admin)) — Removing a resource from the system.
 
 ### 👤 Client Catalog and Booking *(Authorized User)*
-* `GET /api/resources` (Resources List (client)) — List of available active resources for clients (`isActive=true`).
+* `GET /api/resources` (**Resources List** (client)) — List of available active resources for clients (`isActive=true`).
   * **Query Parameters (DTO Filter):** `type` (`desk`|`meeting_room`), `page` (int), `limit` (int).
-* `GET /api/bookings` (Bookings List (admin/client)) — The endpoint of the booking list. Polymorphic depending on the role:
+* `GET /api/bookings` (**Bookings List** (admin/client)) — The endpoint of the booking list. Polymorphic depending on the role:
   * **For the Client (`ROLE_USER`):** Automatically returns only his own bookings.
 * **For the Admin (`ROLE_ADMIN`):** Opens access to the entire database with filtering.
   * **Query Parameters (DTO Filter):** (available only to admin) `userId` (UUID), `resourceId` (UUID), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (Enum value), `page` (int), `limit` (int).
-* `POST /api/booking` (Booking Create (client)) — Making a reservation (reserves a slot with the `pending` status for 15 minutes).
+* `POST /api/booking` (**Booking Create** (client)) — Making a reservation (reserves a slot with the `pending` status for 15 minutes).
   * **Body example (JSON DTO):** `{"resourceId": " 019ef838-c0d4-7a77-b817-a5cdb460d662", "startedAt": "2026-07-10T10:00:00Z", "duration": 120}` *( resourceId  - UUID, startedAt - ATOM ISO 8601, duration in minutes)*
-* `GET /api/bookings/{id}` (Booking Cancel (admin/client)) — The endpoint of the booking cancel by its UUID.
+* `GET /api/bookings/{id}` (**Booking Cancel** (admin/client)) — The endpoint of the booking cancel by its UUID.
   * **For the Admin/Client (`ROLE_ADMIN`/`ROLE_USER`):** Cancels the booking (changes the status to `cancelled`).
-* `POST /api/booking/{id}/pay` (Booking Payment (client)) — The intention to pay. Generates a transaction session.
+* `POST /api/booking/{id}/pay` (**Booking Payment** (client)) — The intention to pay. Generates a transaction session.
   * **Response (JSON):** `{"status": "pending", "payment_token": "ch_fake_d92b2afb0ee5", "redirect_url": "https://mock-payment-gateway.com/ch_fake_d92b2afb0ee5"}`
-* `POST /api/booking/{id}/check_in` (Booking Check In (client)) — Confirmation of the client's presence (activation of the reservation). Available as part of the `bookingTechBreak` buffer (5 minutes before the start).
+* `POST /api/booking/{id}/check_in` (**Booking Check In** (client)) — Confirmation of the client's presence (activation of the reservation). Available as part of the `bookingTechBreak` buffer (5 minutes before the start).
 
 ### 💳 Public Gateway Webhooks (`PUBLIC_ACCESS`)
-* `POST /api/webhooks/payment` (Webhook (public)) — Asynchronous receipt of notifications from the payment system.
+* `POST /api/webhooks/payment` (**Webhook** (public)) — Asynchronous receipt of notifications from the payment system.
 **Request body example (JSON для Postman):**
 ```json
 {
