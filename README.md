@@ -40,7 +40,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 - The admin sees all the objects; the client sees only the active ones. Page-by-page pagination is integrated.
 
 ### ⏳ Stage 3: Booking and Validation
-- The `bookings` table has been created with a strict lifecycle Enum `BookingStatus` (`pending`, `expired`, `failed`, `confirmed`, `cancelled`, `checked_in`, `completed`, `no_show`).
+- The `Booking` entity has been created with a strict lifecycle Enum `BookingStatus` (`pending`, `expired`, `failed`, `confirmed`, `cancelled`, `checked_in`, `completed`, `no_show`).
 - A custom Symfony validator has been written to prevent dates and bookings from overlapping in the past.
 - DTOs have been developed for incoming booking parameters and end-to-end list filters.
 
