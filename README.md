@@ -58,7 +58,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 - Asynchronous alerts for manual cancellation of bookings (`cancelled`).
 
 ### 💳 Stage 6: Two-Step Payment, Webhooks and Check-In
-- The endpoint of the initiation of the `/api/bookings/{id}/pay` payment session with transaction fixation and token generation.
+- The endpoint `/api/bookings/{id}/pay` of the initiation of the payment session with transaction fixation and token generation.
 - Endpoint of the webhook `/api/webhooks/payment` with validation of fraudulent requests (comparison of the transmitted `amount` and `type`).
 - Automatic notification of successful booking (status `confirmed`). Converting the status to `failed` for invalid events/amounts.
 - The `check_in` system (QR code scanning), taking into account a 5-minute technical break (`bookingTechBreak`).
