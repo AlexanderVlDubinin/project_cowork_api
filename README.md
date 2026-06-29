@@ -61,7 +61,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 - The endpoint of the initiation of the `/api/bookings/{id}/pay` payment session with transaction fixation and token generation.
 - Endpoint of the webhook `/api/webhooks/payment` with validation of fraudulent requests (comparison of the transmitted `amount` and `type`).
 - Automatic notification of successful booking (status `confirmed`). Converting the status to `failed` for invalid events/amounts.
-- The 'check_in' system (QR code scanning), taking into account a 5-minute technical break (`bookingTechBreak`).
+- The `check_in` system (QR code scanning), taking into account a 5-minute technical break (`bookingTechBreak`).
 - A worker for automatic cancellation of a reservation in case of no-show within 10 minutes after the start (`no_show`).
 - Automatic notification of booking completion (status `completed`).
 - Testing via **time manipulation** (`now - 11 minutes`) to instantly check background processes.
