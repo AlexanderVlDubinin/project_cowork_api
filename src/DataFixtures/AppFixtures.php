@@ -3,6 +3,7 @@
 namespace App\DataFixtures;
 
 use App\Entity\Booking;
+use App\Entity\PaymentTransaction;
 use App\Entity\Resource;
 use App\Entity\User;
 use App\Enum\BookingStatus;
@@ -25,6 +26,7 @@ class AppFixtures extends Fixture
         UserRepository $userRepository,
         ResourceRepository $repository,
         private readonly int $bookingTechBreak,
+        private readonly int $bookingPaymentDelay,
     )
     {
         $this->passwordHasher = $passwordHasher;
@@ -164,6 +166,9 @@ class AppFixtures extends Fixture
         // Array to track user occupation: $userSchedules[userId][dateString][] = [start_timestamp, end_timestamp]
         // Only counts for ACTIVE bookings (cancelled/expired don't block the user's timeline)
         $userSchedules = [];
+
+        // Store created bookings to add transactions later
+        $createdBookings = [];
 
         foreach ($allActiveResources as $resource) {
             if (!$resource->isActive()) {
@@ -310,6 +315,9 @@ class AppFixtures extends Fixture
 
                         $manager->persist($booking);
 
+                        // Store booking for transaction creation
+                        $createdBookings[] = $booking;
+
                         // Track minutes for target occupancy
                         if (!$isCancelledExpiredFailed) {
                             $currentMinutesBooked += $durationMinutes;
@@ -326,7 +334,105 @@ class AppFixtures extends Fixture
             }
         }
 
+        // Flush bookings first to ensure they have IDs
         $manager->flush();
+
+        // Now create transactions for all bookings
+        $this->createTransactions($manager, $createdBookings);
+
+        $manager->flush();
+    }
+
+    private function createTransactions(ObjectManager $manager, array $bookings): void
+    {
+        foreach ($bookings as $booking) {
+            $status = $booking->getStatus();
+
+            // For CONFIRMED, COMPLETED, NO_SHOW - always create 1 successful transaction
+            if (in_array($status, [
+                BookingStatus::CONFIRMED,
+                BookingStatus::COMPLETED,
+                BookingStatus::NO_SHOW
+            ])) {
+                $this->createTransaction($manager, $booking, 'success');
+            }
+            // For FAILED - create 1-3 failed transactions
+            elseif ($status === BookingStatus::FAILED) {
+                $numTransactions = rand(1, 3);
+                for ($i = 0; $i < $numTransactions; $i++) {
+                    $this->createTransaction($manager, $booking, 'failed');
+                }
+            }
+            // For CANCELLED - 50% chance to have 1 successful transaction
+            elseif ($status === BookingStatus::CANCELLED) {
+                if (rand(1, 100) <= 50) {
+                    $this->createTransaction($manager, $booking, 'success');
+                }
+            }
+            // For EXPIRED - 1 transaction with status 'created' and null payload
+            elseif ($status === BookingStatus::EXPIRED) {
+                $this->createTransaction($manager, $booking, 'created', true);
+            }
+            // For PENDING - no transactions (no PENDING status, changed to some other)
+        }
+    }
+
+    private function createTransaction(ObjectManager $manager, Booking $booking, string $status, bool $nullPayload = false): void
+    {
+        // Generate external_id (same as in initiatePayment)
+        $externalId = 'ch_fake_' . bin2hex(random_bytes(6));
+
+        $transaction = new PaymentTransaction();
+        $transaction->setBooking($booking);
+        $transaction->setExternalId($externalId);
+        $transaction->setStatus($status);
+
+        // Set amount based on status
+        $originalAmount = $booking->getTotalPrice();
+
+        if ($status === 'failed') {
+            // Failed transaction: amount and/or type may differ from original (33% chance)
+            if (rand(1, 100) <= 33) {
+                $type = 'payment.succeeded';
+                // Amount can be less or more than original (within 30% range)
+                $variation = rand(-30, 30);
+                $amount = (int) max(1, $originalAmount + ($originalAmount * $variation / 100));
+            } elseif (rand(1, 100) >= 67) {
+                $type = 'payment.failed';
+                $amount = $originalAmount;
+            } else {
+                $type = 'payment.failed';
+                // Amount can be less or more than original (within 30% range)
+                $variation = rand(-30, 30);
+                $amount = (int) max(1, $originalAmount + ($originalAmount * $variation / 100));
+            }
+        } else {
+            // For success, amount and type should match exactly
+            $type = 'payment.succeeded';
+            $amount = $originalAmount;
+        }
+
+        $transaction->setAmount($amount);
+
+        $payload = $nullPayload ? null : [
+            'type' => $type,
+            'object' => [
+                'id' => $externalId,
+                'amount' => $amount,
+            ]
+        ];
+
+        $transaction->setPayload($payload);
+
+        // Set updatedAt to be within 15 minutes after booking creation
+        $bookingCreatedAt = $booking->getCreatedAt();
+        $delaySeconds = rand(1, $this->bookingPaymentDelay * 60 - 1); // 1-899 seconds (15 minutes) after booking creation
+        $updatedAt = clone $bookingCreatedAt;
+        $updatedAt = $updatedAt->modify('+' . $delaySeconds . ' seconds');
+
+        $transaction->setUpdatedAt($updatedAt);
+
+        $manager->persist($transaction);
     }
 
     /**
@@ -355,10 +461,12 @@ class AppFixtures extends Fixture
         }
 
         // Future bookings (Next 2 weeks)
-        // ~10% pending, ~75% confirmed, ~5% failed,  ~5% expired, ~5% cancelled
+        // ~0% pending, ~85% confirmed, ~5% failed,  ~5% expired, ~5% cancelled
+        /*
         if ($dice <= 10) {
             return BookingStatus::PENDING;
         }
+        */
         if ($dice <= 85) {
             return BookingStatus::CONFIRMED;
         }
