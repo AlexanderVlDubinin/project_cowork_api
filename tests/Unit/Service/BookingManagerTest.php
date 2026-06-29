@@ -11,6 +11,9 @@ use App\Service\BookingManager;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 class BookingManagerTest extends TestCase
 {
@@ -23,12 +26,27 @@ class BookingManagerTest extends TestCase
         $this->bookingRepositoryMock = $this->createMock(BookingRepository::class);
         $this->entityManagerMock = $this->createMock(EntityManagerInterface::class);
 
+        // A stub for Messenger
+        $messageBusMock = $this->createMock(MessageBusInterface::class);
+        $messageBusMock->method('dispatch')
+            ->willReturn(new Envelope(new \stdClass()));
+
+        // A stub for Logger
+        $loggerMock = $this->createMock(LoggerInterface::class);
+
+        // A stub for delay
+        $bookingPaymentDelay = 5; // 15 minutes in .env, 5 minutes in tests
+
         $this->bookingManager = new BookingManager(
             $this->bookingRepositoryMock,
-            $this->entityManagerMock
+            $this->entityManagerMock,
+            $messageBusMock,
+            $loggerMock,
+            $bookingPaymentDelay,
         );
     }
 
+    #[AllowMockObjectsWithoutExpectations] // to avoid notices about missing expectations MessageBusInterface & LoggerInterface
     public function testCreateBookingSuccessAndPriceCalculation(): void
     {
         $user = new User();

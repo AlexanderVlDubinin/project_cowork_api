@@ -55,7 +55,7 @@ class Booking
     #[Groups(['booking:read'])]
     private ?int $totalPrice = null;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, updatable: false)]
     #[Groups(['booking:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -67,6 +67,7 @@ class Booking
 
     public function __construct()
     {
+        $this->id = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $this->paymentTransactions = new ArrayCollection();
     }
