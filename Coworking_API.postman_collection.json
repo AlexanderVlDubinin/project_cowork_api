@@ -1,0 +1,766 @@
+{
+  "info": {
+    "_postman_id": "6cd79c00-2918-4ddf-8cb1-825a0e3e0b34",
+    "name": "Coworking_API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54536046",
+    "_collection_link": "https://go.postman.co/collection/54536046-6cd79c00-2918-4ddf-8cb1-825a0e3e0b34?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "User registration  (public)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"fullName\": \"Test User 2\",\r\n    \"email\": \"user2@example.com\",\r\n    \"password\": \"qwerty123456\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/register",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User login (public)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"username\": \"hollie67@gmail.com\",\r\n    \"password\": \"qwerty123456\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/login_check",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "login_check"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook (public)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"type\": \"payment.succeeded\",\r\n    \"object\": {\r\n        \"id\": \"ch_fake_db30b5d8c8d3\",\r\n        \"amount\": 180\r\n    }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/webhooks/payment",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "webhooks",
+            "payment"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Users List (admin)",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "admin",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resources List (admin)",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/resources?startDate=2026-06-30T10:00:00Z",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "admin",
+            "resources"
+          ],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2026-06-30T10:00:00Z"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resource Create (admin)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"title\": \"Meeting room # XXX\",\r\n    \"type\": \"meeting_room\",\r\n    \"description\": \"Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description, Meeting room # 2 description.\",\r\n    \"isActive\": true,\r\n    \"pricePerHour\": 1200\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/resource",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "admin",
+            "resource"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resource Show (admin)",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/resource/019ed9e8-29ec-7397-8022-158b55bc2f36",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "admin",
+            "resource",
+            "019ed9e8-29ec-7397-8022-158b55bc2f36"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resource Update (admin)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"title\": \"Meeting room # YYY\",\r\n    \"type\": \"meeting_room\",\r\n    \"description\": \"Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description, Meeting room # 1 description.\",\r\n    \"isActive\": true,\r\n    \"pricePerHour\": 1200\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/resource/019ef935-8d70-7da3-ba24-bf24a6484397",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "admin",
+            "resource",
+            "019ef935-8d70-7da3-ba24-bf24a6484397"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resource Delete (admin)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/resource/019ef935-8d70-7da3-ba24-bf24a6484397",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "admin",
+            "resource",
+            "019ef935-8d70-7da3-ba24-bf24a6484397"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Bookings List (admin/client)",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/bookings?startDate=2026-06-30T10:00:00Z",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "bookings"
+          ],
+          "query": [
+            {
+              "key": "startDate",
+              "value": "2026-06-30T10:00:00Z"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Booking Cancel (admin/client)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/booking/019f0471-b4f0-737e-84c4-ad16ffbb970e",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "booking",
+            "019f0471-b4f0-737e-84c4-ad16ffbb970e"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resources List (client)",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/resources?type=desk&duration=90&startDate=2026-06-30T16:35:00Z",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "resources"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "desk"
+            },
+            {
+              "key": "duration",
+              "value": "90"
+            },
+            {
+              "key": "startDate",
+              "value": "2026-06-30T16:35:00Z"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Booking Create (client)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"resourceId\": \"019ef838-c0d4-7a77-b817-a5cdb460d662\",\r\n    \"startedAt\": \"2026-06-30T16:35:00Z\",\r\n    \"duration\": 90\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/booking",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "booking"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Booking Payment (client)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/booking/019f04c5-aff3-7f6d-9470-01e454407ad4/pay",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "booking",
+            "019f04c5-aff3-7f6d-9470-01e454407ad4",
+            "pay"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Booking Check In (client)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{cowork_jwt}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/booking/019f04c5-aff3-7f6d-9470-01e454407ad4/check_in",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "booking",
+            "019f04c5-aff3-7f6d-9470-01e454407ad4",
+            "check_in"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "cowork_jwt",
+      "value": ""
+    }
+  ]
+}
