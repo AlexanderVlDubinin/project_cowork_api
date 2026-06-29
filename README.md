@@ -95,6 +95,18 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 
 ---
 
+## 📬 Ready API collection for Postman
+
+The collection file **`Coworking_API.postman_collection.json`** has been added to the root of the repository. It contains preset requests for all scenarios (authorization, admin panel, booking creation, check-in, and webhooks).
+
+### How to use:
+1. Download the `Coworking_API.postman_collection.json` from the project root.
+2. Open Postman and click the **Import** button (it can be found in the drop-down list marked as `...`) in the upper-left corner.
+3. Drag and drop the downloaded file into the import window (or select this file).
+4. For endpoints that require authorization, the token is automatically substituted from the global variable after successfully calling `POST /api/login_check` and filling in the `cowork_jwt` variable with the token.
+
+---
+
 ## 📋 Interactive documentation of API endpoints
 
 * All endpoints, except for public webhooks and authorization, require the header `Authorization: Bearer <JWT_TOKEN>`.
