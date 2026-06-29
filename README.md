@@ -67,7 +67,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 - Testing via **time manipulation** (`now - 11 minutes`) to instantly check background processes.
 
 ### ➕ Additionally
-- **Data fixtures:** Auto-complete the database with the history of completed bookings for the past week and future upcoming bookings for 2 weeks ahead. The following users are created by fixtures: Super User (`ROLE_SUPER_ADMIN', Email: 'superadmin@example.com', Password: 'superpass123!'); Admin (`ROLE_ADMIN', Email: 'admin1@example.com' - 'admin4@example.com', Password: 'admin123456'), Regular user (`ROLE_USER', Email: random - see the endpoint Users List, Password: 'qwerty123456').
+- **Data fixtures:** Auto-complete the database with the history of completed bookings for the past week and future upcoming bookings for 2 weeks ahead. The following users are created by fixtures: Super User (`ROLE_SUPER_ADMIN`, Email: `superadmin@example.com`, Password: `superpass123!`); Admin (`ROLE_ADMIN`, Email: `admin1@example.com` - `admin4@example.com`, Password: `admin123456`), Regular user (`ROLE_USER`, Email: random - see the endpoint Users List, Password: `qwerty123456`).
 - **Pagination:** Page-by-page output (`page`, `limit`) is integrated into absolutely all API lists.
 
 ---
