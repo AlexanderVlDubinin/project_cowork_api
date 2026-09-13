@@ -22,7 +22,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 
 1. **Coworking mode of operation:** The booking service and resources are available strictly on weekdays (Mon-Fri) from 08:00 to 20:00. Requests outside this interval are rejected by the validator.
 2. **Overbooking protection (Race Conditions):** Time interval intersection control is encapsulated in the `BookingManager`. At the DBMS level, a composite index is deployed for the fields `(resource_id, started_at, ended_at)` to block parallel overlaps in time.
-3. **Idempotence of payments:** The `payment_transactions` table acts as a buffer. Repeated webhooks from the bank are processed without changing the entities, returning the status `already_processed'.
+3. **Idempotence of payments:** The `payment_transactions` table acts as a buffer. Repeated webhooks from the bank are processed without changing the entities, returning the status `already_processed`.
 4. **Life Cycle Automation:** Monitoring of payment timeouts (15 min), No-Show customers (10 min) and lease completion (Completion) is implemented asynchronously via `Symfony Messenger (DelayStamp)`.
 
 ---
