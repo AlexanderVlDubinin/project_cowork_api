@@ -134,7 +134,7 @@ The collection file **`Coworking_API.postman_collection.json`** has been added t
   * **Query Parameters (DTO Filter):** `type` (`desk`|`meeting_room`), `page` (int), `limit` (int).
 * `GET /api/bookings` (**Bookings List** (admin/client)) — The endpoint of the booking list. Polymorphic depending on the role:
   * **For the Client (`ROLE_USER`):** Automatically returns only his own bookings.
-* **For the Admin (`ROLE_ADMIN`):** Opens access to the entire database with filtering.
+  * **For the Admin (`ROLE_ADMIN`):** Opens access to the entire database with filtering.
   * **Query Parameters (DTO Filter):** (available only to admin) `userId` (UUID), `resourceId` (UUID), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (Enum value), `page` (int), `limit` (int).
 * `POST /api/booking` (**Booking Create** (client)) — Making a reservation (reserves a slot with the `pending` status for 15 minutes).
   * **Body example (JSON DTO):** `{"resourceId": " 019ef838-c0d4-7a77-b817-a5cdb460d662", "startedAt": "2026-07-10T10:00:00Z", "duration": 120}` *( resourceId  - UUID, startedAt - ATOM ISO 8601, duration in minutes)*
