@@ -132,9 +132,17 @@ class BookingRepository extends ServiceEntityRepository
             ->where('b.resource = :resource')
             ->andWhere('b.startedAt < :end')
             ->andWhere('b.endedAt > :start')
+            ->andWhere('b.status NOT IN (:excludedStatuses)')
             ->setParameter('resource', $resource)
             ->setParameter('start', $start)
             ->setParameter('end', $end)
+            ->setParameter('excludedStatuses', [
+                BookingStatus::FAILED,
+                BookingStatus::EXPIRED,
+                BookingStatus::CANCELLED,
+                BookingStatus::COMPLETED,
+                BookingStatus::NO_SHOW
+            ])
             ->orderBy('b.startedAt', 'ASC') // Important for the gap search algorithm
             ->getQuery()
             ->getResult();
