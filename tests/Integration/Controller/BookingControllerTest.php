@@ -133,11 +133,13 @@ class BookingControllerTest extends WebTestCase
     {
         $this->logInAsClientOrAdmin(true);
 
+        // not ATOM format (ISO 8601)
+        $wrongStartDate = (new \DateTimeImmutable('first day of next year'))->format('Y-m-d');
         $this->client->request(
             'GET',
             '/api/bookings',
             [
-                'startDate' => '2027-01-01',
+                'startDate' => $wrongStartDate,
             ],
             [],
             // 'CONTENT_TYPE' => 'application/json', // no JWT
@@ -160,6 +162,9 @@ class BookingControllerTest extends WebTestCase
     {
         $this->logInAsClientOrAdmin();
 
+        $startDate = (new \DateTimeImmutable('+1 month'))
+            ->setTime(12, 0, 0)
+            ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
             'POST',
             '/api/booking',
@@ -169,7 +174,7 @@ class BookingControllerTest extends WebTestCase
             $this->getAuthHeaders(), // JWT
             json_encode([
                 'resourceId' => $this->testResource->getId()->toString(),
-                'startedAt' => '2026-07-20T12:00:00Z',
+                'startedAt' => $startDate,
                 'duration' => 120 // duration in minutes (for example, 2 hours)
             ])
         );
@@ -210,9 +215,12 @@ class BookingControllerTest extends WebTestCase
     {
         $this->logInAsClientOrAdmin();
 
+        $startDate = (new \DateTimeImmutable('+1 month'))
+            ->setTime(14, 0, 0)
+            ->format('Y-m-d\TH:i:s\Z');
         $payload = [
             'resourceId' => $this->testResource->getId()->toString(),
-            'startedAt' => '2026-07-20T14:00:00Z',
+            'startedAt' => $startDate,
             'duration' => 60
         ];
 
@@ -256,6 +264,9 @@ class BookingControllerTest extends WebTestCase
     {
         $this->logInAsClientOrAdmin();
 
+        $startDateInPast = (new \DateTimeImmutable('first day of last year'))
+            ->setTime(12, 0, 0)
+            ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
             'POST',
             '/api/booking',
@@ -265,7 +276,7 @@ class BookingControllerTest extends WebTestCase
             $this->getAuthHeaders(), // JWT
             json_encode([
                 'resourceId' => $this->testResource->getId()->toString(),
-                'startedAt' => '2020-01-01T12:00:00Z', // attempted booking in the past
+                'startedAt' => $startDateInPast, // attempted booking in the past
                 'duration' => 60
             ])
         );
@@ -286,6 +297,9 @@ class BookingControllerTest extends WebTestCase
     {
         $this->logInAsClientOrAdmin();
 
+        $startDate = (new \DateTimeImmutable('+1 month'))
+            ->setTime(12, 0, 0)
+            ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
             'POST',
             '/api/booking',
@@ -295,7 +309,7 @@ class BookingControllerTest extends WebTestCase
             $this->getAuthHeaders(), // JWT
             json_encode([
                 'resourceId' => $this->testResource->getId()->toString(),
-                'startedAt' => '2026-07-20T12:00:00Z',
+                'startedAt' => $startDate,
                 'duration' => 120 // duration in minutes (for example, 2 hours)
             ])
         );
@@ -346,6 +360,9 @@ class BookingControllerTest extends WebTestCase
     {
         $this->logInAsClientOrAdmin(true);
 
+        $startDate = (new \DateTimeImmutable('+1 month'))
+            ->setTime(12, 0, 0)
+            ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
             'POST',
             '/api/booking',
@@ -355,7 +372,7 @@ class BookingControllerTest extends WebTestCase
             $this->getAuthHeaders(), // JWT
             json_encode([
                 'resourceId' => $this->testResource->getId()->toString(),
-                'startedAt' => '2026-07-20T12:00:00Z',
+                'startedAt' => $startDate,
                 'duration' => 120 // duration in minutes (for example, 2 hours)
             ])
         );

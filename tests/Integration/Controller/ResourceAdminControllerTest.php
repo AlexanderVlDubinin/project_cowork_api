@@ -117,7 +117,7 @@ class ResourceAdminControllerTest extends WebTestCase
             'GET',
             '/api/resources',
             [
-                'startDate' => '2027-01-01',
+                'startDate' => (new \DateTimeImmutable('first day of next year'))->format('Y-m-d'),
             ],
             [],
             $this->getAuthHeaders(),

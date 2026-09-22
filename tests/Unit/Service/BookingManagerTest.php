@@ -53,10 +53,10 @@ class BookingManagerTest extends TestCase
         $resource = new Resource();
         $resource->setPricePerHour(1500); // $15.00
 
-        //$start = new \DateTimeImmutable('2026-06-18T10:00:00Z');
-        //$end = new \DateTimeImmutable('2026-06-18T12:00:00Z'); // Exactly 2 hours
-        $start = new \DateTimeImmutable('+2 hours'); // The date depends on the current one
-        $end = new \DateTimeImmutable('+4 hours'); // Exactly 2 hours
+        $start = (new \DateTimeImmutable('+1 month'))
+            ->modify('weekday')
+            ->setTime(12, 0, 0); // The date depends on the current one (on week day & working hour)
+        $end = $start->modify('+2 hours'); // Exactly 2 hours
 
         // Indicating that there are no intersections in the database
         $this->bookingRepositoryMock->expects($this->once())
@@ -81,10 +81,10 @@ class BookingManagerTest extends TestCase
         $resource = new Resource();
         $resource->setPricePerHour(1000);
 
-        //$start = new \DateTimeImmutable('2026-06-18T10:00:00Z');
-        //$end = new \DateTimeImmutable('2026-06-18T11:10:00Z'); // 1 hour and 10 minutes
-        $start = new \DateTimeImmutable('+2 hours'); // The date depends on the current one
-        $end = new \DateTimeImmutable('+3 hours 10 minutes'); // 1 hour and 10 minutes
+        $start = (new \DateTimeImmutable('+1 month'))
+            ->modify('weekday')
+            ->setTime(12, 0, 0); // The date depends on the current one (on week day & working hour)
+        $end = $start->modify('+1 hour 10 minutes'); // 1 hour and 10 minutes
 
         $this->bookingRepositoryMock->method('hasOverlappingBookings')->willReturn(false);
 
@@ -99,10 +99,11 @@ class BookingManagerTest extends TestCase
     {
         $user = new User();
         $resource = new Resource();
-        //$start = new \DateTimeImmutable('2026-06-18T10:00:00Z');
-        //$end = new \DateTimeImmutable('2026-06-18T12:00:00Z');
-        $start = new \DateTimeImmutable('+2 hours');
-        $end = new \DateTimeImmutable('+4 hours');
+
+        $start = (new \DateTimeImmutable('+1 month'))
+            ->modify('weekday')
+            ->setTime(12, 0, 0);
+        $end = $start->modify('+2 hours');
 
         // Simulating that an intersection has been found
         $this->bookingRepositoryMock->expects($this->once())
