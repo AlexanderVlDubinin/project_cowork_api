@@ -6,6 +6,7 @@ use App\Entity\Booking;
 use App\Enum\BookingStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -15,13 +16,14 @@ final class ResourceUsageController extends AbstractController
     public function checkIn(
         Booking $booking,
         EntityManagerInterface $em,
+        ClockInterface $clock, // Symfony automatically implements the clock service
         int $bookingTechBreak,
     ): JsonResponse {
         if ($booking->getStatus() !== BookingStatus::CONFIRMED) {
             return $this->json(['error' => 'Check-in is not possible. The booking must be confirmed (paid).'], 400);
         }
 
-        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $now = $clock->now();
         // Allow check-in only on the day/time of booking
         // (with a small buffer, for example, during a technical break before the start)
         if ($now < $booking->getStartedAt()->modify('-' . $bookingTechBreak . ' minutes')) {

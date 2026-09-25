@@ -12,6 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -20,6 +21,7 @@ class BookingManagerTest extends TestCase
     private BookingRepository $bookingRepositoryMock;
     private EntityManagerInterface $entityManagerMock;
     private BookingManager $bookingManager;
+    private int $bookingTechBreak = 5; // A stub for tech break
 
     protected function setUp(): void
     {
@@ -43,6 +45,7 @@ class BookingManagerTest extends TestCase
             $messageBusMock,
             $loggerMock,
             $bookingPaymentDelay,
+            $this->bookingTechBreak
         );
     }
 
@@ -58,10 +61,15 @@ class BookingManagerTest extends TestCase
             ->setTime(12, 0, 0); // The date depends on the current one (on week day & working hour)
         $end = $start->modify('+2 hours'); // Exactly 2 hours
 
+        // Adjusting dates for database checks
+        // (such dates should be included in the hasOverlappingBookings method)
+        $expectedDbStart = $start->modify("-{$this->bookingTechBreak} minutes");
+        $expectedDbEnd = $end->modify("+{$this->bookingTechBreak} minutes");
+
         // Indicating that there are no intersections in the database
         $this->bookingRepositoryMock->expects($this->once())
             ->method('hasOverlappingBookings')
-            ->with($resource, $start, $end)
+            ->with($resource, $expectedDbStart, $expectedDbEnd)
             ->willReturn(false);
 
         $this->entityManagerMock->expects($this->once())->method('persist');
@@ -110,7 +118,7 @@ class BookingManagerTest extends TestCase
             ->method('hasOverlappingBookings')
             ->willReturn(true);
 
-        $this->expectException(\LogicException::class);
+        $this->expectException(ConflictHttpException::class);
         $this->expectExceptionMessage('This time interval is already occupied for the selected resource.');
 
         $this->bookingManager->createBooking($user, $resource, $start, $end);

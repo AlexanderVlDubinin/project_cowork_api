@@ -134,7 +134,9 @@ class BookingControllerTest extends WebTestCase
         $this->logInAsClientOrAdmin(true);
 
         // not ATOM format (ISO 8601)
-        $wrongStartDate = (new \DateTimeImmutable('first day of next year'))->format('Y-m-d');
+        $wrongStartDate = (new \DateTimeImmutable('first day of next year'))
+            ->modify('weekday')
+            ->format('Y-m-d');
         $this->client->request(
             'GET',
             '/api/bookings',
@@ -163,6 +165,7 @@ class BookingControllerTest extends WebTestCase
         $this->logInAsClientOrAdmin();
 
         $startDate = (new \DateTimeImmutable('+1 month'))
+            ->modify('weekday')
             ->setTime(12, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
@@ -216,6 +219,7 @@ class BookingControllerTest extends WebTestCase
         $this->logInAsClientOrAdmin();
 
         $startDate = (new \DateTimeImmutable('+1 month'))
+            ->modify('weekday')
             ->setTime(14, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $payload = [
@@ -265,6 +269,7 @@ class BookingControllerTest extends WebTestCase
         $this->logInAsClientOrAdmin();
 
         $startDateInPast = (new \DateTimeImmutable('first day of last year'))
+            ->modify('weekday')
             ->setTime(12, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
@@ -298,6 +303,7 @@ class BookingControllerTest extends WebTestCase
         $this->logInAsClientOrAdmin();
 
         $startDate = (new \DateTimeImmutable('+1 month'))
+            ->modify('weekday')
             ->setTime(12, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
@@ -361,6 +367,7 @@ class BookingControllerTest extends WebTestCase
         $this->logInAsClientOrAdmin(true);
 
         $startDate = (new \DateTimeImmutable('+1 month'))
+            ->modify('weekday')
             ->setTime(12, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(

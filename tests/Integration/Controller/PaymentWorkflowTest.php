@@ -15,21 +15,30 @@ use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class PaymentWorkflowTest extends WebTestCase
 {
+    use ClockSensitiveTrait; // trait is used for flexible time simulation (mockTime())
+
     private KernelBrowser $client;
     private EntityManagerInterface $em;
     private Booking $booking;
     private UserPasswordHasherInterface $passwordHasher;
     private string $jwtToken;
+    private \DateTimeImmutable $baseTime;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
         $this->em = static::getContainer()->get('doctrine.orm.entity_manager');
         $this->passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+
+        // Fixing the "now" time for Monday of the following week at 12:00 p.m.
+        $this->baseTime = new \DateTimeImmutable('next week monday 12:00:00', new \DateTimeZone('UTC'));
+        self::mockTime($this->baseTime);
+
         $this->setupTestData();
     }
 
@@ -76,8 +85,8 @@ class PaymentWorkflowTest extends WebTestCase
         $this->booking
             ->setUser($user)
             ->setResource($resource)
-            ->setStartedAt(new \DateTimeImmutable('now + 1 hour'))
-            ->setEndedAt(new \DateTimeImmutable('now + 2 hours'))
+            ->setStartedAt($this->baseTime->modify('+1 hour')) // 13:00
+            ->setEndedAt($this->baseTime->modify('+3 hour')) // 15:00
             ->setTotalPrice(500)
             ->setStatus(BookingStatus::PENDING);
 
@@ -347,8 +356,10 @@ class PaymentWorkflowTest extends WebTestCase
         $this->booking->setStatus(BookingStatus::CONFIRMED);
 
         // Set the start time of the booking so that the current moment "now" falls into the buffer.
-        // For example, the booking will start in 3 minutes. With a buffer of 5 minutes— the check-in is already allowed.
-        $this->booking->setStartedAt(new \DateTimeImmutable('now + 3 minutes', new \DateTimeZone('UTC')));
+        // For example, the booking will start in 3 minutes. With a buffer of 5 minutes — the check-in is already allowed.
+        // In the setup, the booking starts at 13:00
+        // Set the system clock to 12:57 (3 minutes before the start, it gets into the buffer for 5 minutes)
+        self::mockTime($this->baseTime->modify('+57 minutes'));
         $this->em->flush();
 
         $this->client->request(
@@ -382,8 +393,9 @@ class PaymentWorkflowTest extends WebTestCase
         $this->logInAsClient();
 
         $this->booking->setStatus(BookingStatus::CONFIRMED);
-        // The booking will only start in 5 hours (it will go far beyond the 5-minute buffer)
-        $this->booking->setStartedAt(new \DateTimeImmutable('now + 5 hours', new \DateTimeZone('UTC')));
+        // The booking starts at 13:00. The clock is currently at 12:00 (set in setUp).
+        // This is 60 minutes before the start — too early for a 5-minute buffer.
+        // There is no need to change anything.
         $this->em->flush();
 
         $this->client->request(
@@ -409,10 +421,12 @@ class PaymentWorkflowTest extends WebTestCase
         $this->logInAsClient();
 
         $this->booking->setStatus(BookingStatus::CONFIRMED);
-        // Moving the booking start time to the past (11 minutes ago)
-        // This means that the 10-minute check_in waiting window has already closed.
-        $this->booking->setStartedAt(new \DateTimeImmutable('now - 11 minutes', new \DateTimeZone('UTC')));
         $this->em->flush();
+
+        // The booking started at 13:00.
+        // Rewind the system time forward to 13:11
+        // (11 minutes have passed since the start, the 10-minute check_in waiting window has already closed)
+        self::mockTime($this->baseTime->modify('+1 hour + 11 minutes')); // 13:11
 
         // Getting the Handler from the Symfony container
         /** @var CheckNoShowHandler $handler */
@@ -446,9 +460,11 @@ class PaymentWorkflowTest extends WebTestCase
 
         // The client was successfully present at the workplace
         $this->booking->setStatus(BookingStatus::CHECKED_IN);
-        // Shifting the end time of the booking to the past (1 minute ago), as if the time has run out
-        $this->booking->setEndedAt(new \DateTimeImmutable('now - 1 minute', new \DateTimeZone('UTC')));
         $this->em->flush();
+
+        // The booking ends at 15:00.
+        // Rewind the system time to 15:01 (time is up, it's time to leave)
+        self::mockTime($this->baseTime->modify('+3 hours + 1 minute'));
 
         /** @var CheckCompletionHandler $handler */
         $handler = static::getContainer()->get(CheckCompletionHandler::class);
