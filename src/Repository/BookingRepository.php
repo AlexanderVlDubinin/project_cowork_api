@@ -43,7 +43,8 @@ class BookingRepository extends ServiceEntityRepository
                 BookingStatus::FAILED,
                 BookingStatus::EXPIRED,
                 BookingStatus::CANCELLED,
-                BookingStatus::COMPLETED
+                BookingStatus::COMPLETED,
+                BookingStatus::NO_SHOW
             ]);
 
         return $qb->getQuery()->getSingleScalarResult() > 0;
