@@ -22,11 +22,19 @@ class BookingRepository extends ServiceEntityRepository
 
     public function hasOverlappingBookings(Resource $resource, \DateTimeImmutable $start, \DateTimeImmutable $end): bool
     {
-        $qb = $this->createQueryBuilder('b')
-            ->select('COUNT(b.id)')
+        $qb = $this->createQueryBuilder('b');
+        $qb->select('COUNT(b.id)')
             ->where('b.resource = :resource')
-            ->andWhere('b.startedAt < :end')
-            ->andWhere('b.endedAt > :start')
+            ->andWhere(
+                $qb->expr()->orX(
+                    // The new interval starts inside the existing one
+                    ':start < b.endedAt AND :start >= b.startedAt',
+                    // The new interval ends inside the existing one
+                    ':end > b.startedAt AND :end <= b.endedAt',
+                    // The new interval completely absorbs the existing one
+                    ':start <= b.startedAt AND :end >= b.endedAt'
+                )
+            )
             ->andWhere('b.status NOT IN (:excludedStatuses)')
             ->setParameter('resource', $resource)
             ->setParameter('start', $start)

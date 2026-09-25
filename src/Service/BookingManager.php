@@ -9,8 +9,10 @@ use App\Enum\BookingStatus;
 use App\Message\CheckBookingTimeoutMessage;
 use App\Message\SendEmailNotificationMessage;
 use App\Repository\BookingRepository;
+use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
@@ -23,6 +25,7 @@ class BookingManager
         private readonly MessageBusInterface    $messageBus,
         private readonly LoggerInterface        $logger,
         private readonly int                    $bookingPaymentDelay,
+        private readonly int                    $bookingTechBreak,
     ) {}
 
     public function createBooking(
@@ -32,6 +35,7 @@ class BookingManager
         \DateTimeImmutable $end
     ): Booking {
 
+        // Additional time checks
         $isStartCorrect = $this->isWorkingHours($start);
         if (!$isStartCorrect) {
             throw new \LogicException('The start time is not within working hours. The service is open on weekdays from 8:00 to 20:00.');
@@ -41,23 +45,48 @@ class BookingManager
             throw new \LogicException('The end time is not within working hours. The service is open on weekdays from 8:00 to 20:00.');
         }
 
-        if ($this->bookingRepository->hasOverlappingBookings($resource, $start, $end)) {
-            throw new \LogicException('This time interval is already occupied for the selected resource.');
+        // LEVEL 1: CONTROL AT THE LOGIC LEVEL (Race Condition)
+        $dbSearchStart = $start->modify("-{$this->bookingTechBreak} minutes");
+        $dbSearchEnd = $end->modify("+{$this->bookingTechBreak} minutes");
+        $hasIntersection = $this->bookingRepository->hasOverlappingBookings(
+            $resource,
+            $dbSearchStart,
+            $dbSearchEnd
+        );
+
+        if ($hasIntersection) {
+            throw new ConflictHttpException('This time interval is already occupied for the selected resource.');
         }
 
-        $booking = new Booking();
-        $booking->setUser($user);
-        $booking->setResource($resource);
-        $booking->setStartedAt($start);
-        $booking->setEndedAt($end);
-        $booking->setStatus(BookingStatus::PENDING);
+        // LEVEL 2: DATABASE-LEVEL CONTROL (Race Condition)
+        try {
+            $booking = new Booking();
+            $booking->setUser($user);
+            $booking->setResource($resource);
+            $booking->setStartedAt($start);
+            $booking->setEndedAt($end);
+            $booking->setStatus(BookingStatus::PENDING);
 
-        $booking->setTotalPrice($this->calculatePrice($resource, $start, $end));
+            $booking->setTotalPrice($this->calculatePrice($resource, $start, $end));
 
-        $this->entityManager->persist($booking);
-        $this->entityManager->flush();
+            $this->entityManager->persist($booking);
+            $this->entityManager->flush();
 
-        $bookingId = $booking->getId();
+            $bookingId = $booking->getId();
+        } catch (DriverException $e) {
+            // If this error occurs, it means that the no_overlapping_books trigger in PostgreSQL has been triggered.
+            // This protected against a parallel race condition request.
+            $sqlState = $e->getSQLState(); // For "overlap" error, it is '23P01'
+            $errorMessage = $e->getMessage();
+
+            if ($sqlState === '23P01' || str_contains($errorMessage, 'no_overlapping_bookings')) {
+                // Turning a Database Error into a Symfony HTTP 409 Conflict
+                throw new ConflictHttpException('Unfortunately, this time has just been booked. Try something else.', $e);
+            }
+
+            // If this is some other DB error, skip it further
+            throw new ConflictHttpException('An error occurred at the database level.', $e);
+        }
 
         // Instant notification of booking creation
         try {

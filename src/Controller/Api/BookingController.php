@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -79,13 +80,20 @@ final class BookingController extends AbstractController
         try {
             $booking = $bookingManager->createBooking($user, $resource, $startedAt, $endedAt);
             $bookingOutput = BookingOutput::getBookingOutput($booking);
-            return $this->json($bookingOutput, Response::HTTP_CREATED);
+            $jsonDataForReturn = $this->json($bookingOutput, Response::HTTP_CREATED);
         } catch (\LogicException $e) {
-            return $this->json([
-                'message' => 'Booking creation failed',
+            $jsonDataForReturn = $this->json([
+                'message' => 'Booking creation failed, date error',
+                'errors' => ['error' => $e->getMessage()]
+            ], Response::HTTP_CONFLICT);
+        } catch (ConflictHttpException $e) {
+            $jsonDataForReturn = $this->json([
+                'message' => 'Booking creation failed, overlap error',
                 'errors' => ['error' => $e->getMessage()]
             ], Response::HTTP_CONFLICT);
         }
+
+        return $jsonDataForReturn;
     }
 
     #[Route('/api/booking/{id}', name: 'api_client_booking_cancel', methods: ['DELETE'])]
