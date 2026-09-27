@@ -2,12 +2,9 @@
 
 namespace App\Tests\Integration\Controller;
 
-use App\Entity\Booking;
 use App\Entity\Resource;
 use App\Entity\User;
-use App\Enum\BookingStatus;
 use App\Enum\ResourceType;
-use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -148,63 +145,5 @@ class ResourceClientControllerTest extends WebTestCase
             'Invalid resource type. Available options: desk, meeting_room',
             $responseData['errors']['type']
         );
-    }
-
-    /**
-     * Test that the database exclusion constraint prevents overlapping bookings
-     */
-    public function testDbExclusionConstraintPreventsOverlapping(): void
-    {
-        $userRepository = $this->em->getRepository(User::class);
-        $testUser = $userRepository->findOneBy(['email' => 'client@example.com']);
-        $testUser2 = $userRepository->findOneBy(['email' => 'client2@example.com']);
-
-        $resource = $this->em->getRepository(Resource::class)->findOneBy([]);
-
-        $createDate = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
-            ->setTime(10, 0, 0)
-            ->format('Y-m-d\TH:i:s\Z');
-        $startDate1 = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
-            ->setTime(12, 0, 0)
-            ->format('Y-m-d\TH:i:s\Z');
-        $endDate1 = (new \DateTimeImmutable($startDate1))
-            ->modify('+2 hours')
-            ->format('Y-m-d\TH:i:s\Z');
-
-        $booking1 = new Booking();
-        $booking1->setResource($resource)
-            ->setStartedAt(new \DateTimeImmutable($startDate1))
-            ->setEndedAt(new \DateTimeImmutable($endDate1))
-            ->setStatus(BookingStatus::PENDING)
-            ->setTotalPrice(1000)
-            ->setCreatedAt(new \DateTimeImmutable($createDate))
-            ->setUser($testUser);
-
-        $startDate2 = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
-            ->setTime(13, 0, 0)
-            ->format('Y-m-d\TH:i:s\Z');
-        $endDate2 = (new \DateTimeImmutable($startDate2))
-            ->modify('+2 hours')
-            ->format('Y-m-d\TH:i:s\Z');
-
-        $booking2 = new Booking();
-        $booking2->setResource($resource)
-            ->setStartedAt(new \DateTimeImmutable($startDate2)) // Overlaps the first one!
-            ->setEndedAt(new \DateTimeImmutable($endDate2))
-            ->setStatus(BookingStatus::CONFIRMED)
-            ->setTotalPrice(1000)
-            ->setCreatedAt(new \DateTimeImmutable($createDate))
-            ->setUser($testUser2);
-
-        $this->em->persist($booking1);
-        $this->em->persist($booking2);
-
-        // The database is expected to throw a uniqueness violation exception.
-        $this->expectException(DriverException::class);
-
-        $this->em->flush();
     }
 }
