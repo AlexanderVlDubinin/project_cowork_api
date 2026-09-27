@@ -21,7 +21,7 @@ The system is designed using modern architectural patterns (DTO, Outbox, Service
 ## 📐 Business rules & System logic
 
 1. **Coworking mode of operation:** The booking service and resources are available strictly on weekdays (Mon-Fri) from 08:00 to 20:00. Requests outside this interval are rejected by the validator.
-2. **Overbooking protection (Race Conditions):** Time interval intersection control is encapsulated in the `BookingManager`. At the DBMS level, a composite index is deployed for the fields `(resource_id, started_at, ended_at)` to block parallel overlaps in time.
+2. **Overbooking protection (Race Conditions):** Time interval intersection control is encapsulated in the `BookingManager`. At the DBMS level, a conditional PostgreSQL GiST exclusion constraint (`EXCLUDE USING gist`) with a `tsrange` time-interval function is deployed to block parallel overlaps in time. It guarantees 100% data integrity at the database core level by automatically rejecting any parallel overlapping timestamps for active bookings (`pending`, `confirmed`, `checked_in`) while safely allowing immediate reuse of time slots from inactive ones (`cancelled`, `failed`, `expired`, `no_show`).
 3. **Idempotence of payments:** The `payment_transactions` table acts as a buffer. Repeated webhooks from the bank are processed without changing the entities, returning the status `already_processed`.
 4. **Life Cycle Automation:** Monitoring of payment timeouts (15 min), No-Show customers (10 min) and lease completion (Completion) is implemented asynchronously via `Symfony Messenger (DelayStamp)`.
 
