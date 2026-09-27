@@ -35,16 +35,14 @@ class BookingRepository extends ServiceEntityRepository
                     ':start <= b.startedAt AND :end >= b.endedAt'
                 )
             )
-            ->andWhere('b.status NOT IN (:excludedStatuses)')
+            ->andWhere('b.status IN (:activeStatuses)')
             ->setParameter('resource', $resource)
             ->setParameter('start', $start)
             ->setParameter('end', $end)
-            ->setParameter('excludedStatuses', [
-                BookingStatus::FAILED,
-                BookingStatus::EXPIRED,
-                BookingStatus::CANCELLED,
-                BookingStatus::COMPLETED,
-                BookingStatus::NO_SHOW
+            ->setParameter('activeStatuses', [
+                BookingStatus::PENDING,
+                BookingStatus::CONFIRMED,
+                BookingStatus::CHECKED_IN
             ]);
 
         return $qb->getQuery()->getSingleScalarResult() > 0;
@@ -141,16 +139,14 @@ class BookingRepository extends ServiceEntityRepository
             ->where('b.resource = :resource')
             ->andWhere('b.startedAt < :end')
             ->andWhere('b.endedAt > :start')
-            ->andWhere('b.status NOT IN (:excludedStatuses)')
+            ->andWhere('b.status IN (:activeStatuses)')
             ->setParameter('resource', $resource)
             ->setParameter('start', $start)
             ->setParameter('end', $end)
-            ->setParameter('excludedStatuses', [
-                BookingStatus::FAILED,
-                BookingStatus::EXPIRED,
-                BookingStatus::CANCELLED,
-                BookingStatus::COMPLETED,
-                BookingStatus::NO_SHOW
+            ->setParameter('activeStatuses', [
+                BookingStatus::PENDING,
+                BookingStatus::CONFIRMED,
+                BookingStatus::CHECKED_IN
             ])
             ->orderBy('b.startedAt', 'ASC') // Important for the gap search algorithm
             ->getQuery()
