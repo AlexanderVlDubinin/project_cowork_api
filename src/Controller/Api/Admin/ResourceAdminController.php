@@ -3,6 +3,7 @@
 namespace App\Controller\Api\Admin;
 
 use App\DTO\ResourceInput;
+use App\DTO\ResourceListAdminFilterInput;
 use App\DTO\ResourceListFilterInput;
 use App\Entity\Resource;
 use App\Repository\ResourceRepository;
@@ -31,10 +32,10 @@ final class ResourceAdminController extends AbstractController
     public function index(
         ResourceRepository $repository,
         PaginatorInterface $paginator,
-        #[MapQueryString(validationFailedStatusCode: 400)] ?ResourceListFilterInput $filters = null
+        #[MapQueryString(validationFailedStatusCode: 400)] ?ResourceListAdminFilterInput $filters = null
     ): JsonResponse
     {
-        $filters ??= new ResourceListFilterInput();
+        $filters ??= new ResourceListAdminFilterInput();
         $resources = $repository->findListForAdminByFilters($filters);
 
         $page = $filters->page ?? 1;
