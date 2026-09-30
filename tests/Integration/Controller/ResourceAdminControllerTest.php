@@ -15,7 +15,6 @@ class ResourceAdminControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $em;
-    private Resource $testResource;
     private UserPasswordHasherInterface $passwordHasher;
     private string $jwtToken;
 
@@ -56,13 +55,13 @@ class ResourceAdminControllerTest extends WebTestCase
 
         for ($i = 1; $i <= 12; $i++) {
             // test resource
-            $this->testResource = new Resource();
-            $this->testResource->setTitle('Test Desk № '.$i);
-            $this->testResource->setType(ResourceType::DESK);
-            $this->testResource->setDescription('Test Desk № '.$i.' Description');
-            $this->testResource->setIsActive(true);
-            $this->testResource->setPricePerHour(500);
-            $this->em->persist($this->testResource);
+            $testResource = new Resource();
+            $testResource->setTitle('Test Desk № '.$i);
+            $testResource->setType(ResourceType::DESK);
+            $testResource->setDescription('Test Desk № '.$i.' Description');
+            $testResource->setIsActive(true);
+            $testResource->setPricePerHour(500);
+            $this->em->persist($testResource);
         }
 
         $this->em->flush();
@@ -113,11 +112,12 @@ class ResourceAdminControllerTest extends WebTestCase
     {
         $this->logInAsAdmin();
 
+        // wrong type
         $this->client->request(
             'GET',
-            '/api/resources',
+            '/api/admin/resources',
             [
-                'startDate' => (new \DateTimeImmutable('first day of next year'))->format('Y-m-d'),
+                'type' => 'desk1',
             ],
             [],
             $this->getAuthHeaders(),
@@ -128,10 +128,57 @@ class ResourceAdminControllerTest extends WebTestCase
 
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('errors', $responseData);
-        $this->assertArrayHasKey('startDate', $responseData['errors']);
+        $this->assertArrayHasKey('type', $responseData['errors']);
         $this->assertStringContainsString(
-            'Start date must be in ATOM format (ISO 8601)',
-            $responseData['errors']['startDate']
+            'Invalid resource type. Available options: desk, meeting_room',
+            $responseData['errors']['type']
+        );
+
+        // wrong query - too short
+        $this->client->request(
+            'GET',
+            '/api/admin/resources',
+            [
+                'query' => 'te',
+            ],
+            [],
+            $this->getAuthHeaders(),
+        );
+
+        // DTO validation error
+        $this->assertEquals(422, $this->client->getResponse()->getStatusCode());
+
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('errors', $responseData);
+        $this->assertArrayHasKey('query', $responseData['errors']);
+        $this->assertStringContainsString(
+            'Query must be at least 3 characters long',
+            $responseData['errors']['query']
+        );
+
+        // wrong query - too long
+        $sentence = 'A eos cupiditate natus facilis facilis optio nisi officia. Architecto omnis assumenda ipsam laboriosam tempore voluptatem pariatur. ';
+        // 115 characters, 3 times
+        $longQuery = str_repeat($sentence, 3);
+        $this->client->request(
+            'GET',
+            '/api/admin/resources',
+            [
+                'query' => $longQuery,
+            ],
+            [],
+            $this->getAuthHeaders(),
+        );
+
+        // DTO validation error
+        $this->assertEquals(422, $this->client->getResponse()->getStatusCode());
+
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('errors', $responseData);
+        $this->assertArrayHasKey('query', $responseData['errors']);
+        $this->assertStringContainsString(
+            'Query must be at most 255 characters long',
+            $responseData['errors']['query']
         );
     }
 
