@@ -121,7 +121,7 @@ The collection file **`Coworking_API.postman_collection.json`** has been added t
 
 ### 🛠 Resource Management *(Admin Only)*
 * `GET /api/admin/resources` (**Resources List** (admin)) — An end-to-end list of all resources with pagination and history.
-  * **Query-parameters (DTO Filter):** `userId` (UUID), `type` (`desk`|`meeting_room`), `isActive` (bool), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (string), `page` (int), `limit` (int).
+  * **Query-parameters (DTO Filter):** `type` (`desk`|`meeting_room`), `query` (string, for resource title OR resource description), `active` (bool), `page` (int), `limit` (int).
 * `POST /api/admin/resource` (**Resource Create** (admin)) — Creating a new resource.
   * **Body example (JSON DTO):** `{"title": "Desk № 12", "type": "desk", "description": "With monitor 27", "isActive": true, "pricePerHour": 500}`*( pricePerHour in cents)*.
 * `GET /api/admin/resource/{id}` (**Resource Show** (admin)) — Viewing a specific resource by its UUID.
@@ -131,11 +131,11 @@ The collection file **`Coworking_API.postman_collection.json`** has been added t
 
 ### 👤 Client Catalog and Booking *(Authorized User)*
 * `GET /api/resources` (**Resources List** (client)) — List of available active resources for clients (`isActive=true`).
-  * **Query Parameters (DTO Filter):** `type` (`desk`|`meeting_room`), `page` (int), `limit` (int).
+  * **Query Parameters (DTO Filter):** `type` (`desk`|`meeting_room`), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `duration` (int, minutes), `page` (int), `limit` (int).
 * `GET /api/bookings` (**Bookings List** (admin/client)) — The endpoint of the booking list. Polymorphic depending on the role:
   * **For the Client (`ROLE_USER`):** Automatically returns only his own bookings.
   * **For the Admin (`ROLE_ADMIN`):** Opens access to the entire database with filtering.
-  * **Query Parameters (DTO Filter):** (available only to admin) `userId` (UUID), `resourceId` (UUID), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (Enum value), `page` (int), `limit` (int).
+  * **Query Parameters (DTO Filter):** (available only to admin) `userId` (UUID), `resourceId` (UUID), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (`BookingStatus`, Enum value), `page` (int), `limit` (int).
 * `POST /api/booking` (**Booking Create** (client)) — Making a reservation (reserves a slot with the `pending` status for 15 minutes).
   * **Body example (JSON DTO):** `{"resourceId": " 019ef838-c0d4-7a77-b817-a5cdb460d662", "startedAt": "2026-07-10T10:00:00Z", "duration": 120}` *( resourceId  - UUID, startedAt - ATOM ISO 8601, duration in minutes)*
 * `GET /api/bookings/{id}` (**Booking Cancel** (admin/client)) — The endpoint of the booking cancel by its UUID.
