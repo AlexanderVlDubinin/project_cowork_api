@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tests\Kernel;
+namespace App\Tests\Kernel\Repository;
 
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;

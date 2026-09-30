@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tests\Integration\Controller;
+namespace App\Tests\Integration\Controller\Admin;
 
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;

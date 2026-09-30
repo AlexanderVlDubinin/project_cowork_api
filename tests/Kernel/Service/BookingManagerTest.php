@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tests\Kernel;
+namespace App\Tests\Kernel\Service;
 
 use App\Entity\Booking;
 use App\Entity\Resource;
