@@ -121,7 +121,7 @@ The collection file **`Coworking_API.postman_collection.json`** has been added t
 
 ### 🛠 Resource Management *(Admin Only)*
 * `GET /api/admin/resources` (**Resources List** (admin)) — An end-to-end list of all resources with pagination and history.
-  * **Query-параметры (DTO Фильтр):** `userId` (UUID), `type` (`desk`|`meeting_room`), `isActive` (bool), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (string), `page` (int), `limit` (int).
+  * **Query-parameters (DTO Filter):** `userId` (UUID), `type` (`desk`|`meeting_room`), `isActive` (bool), `startDate` (ATOM ISO 8601), `endDate` (ATOM ISO 8601), `status` (string), `page` (int), `limit` (int).
 * `POST /api/admin/resource` (**Resource Create** (admin)) — Creating a new resource.
   * **Body example (JSON DTO):** `{"title": "Desk № 12", "type": "desk", "description": "With monitor 27", "isActive": true, "pricePerHour": 500}`*( pricePerHour in cents)*.
 * `GET /api/admin/resource/{id}` (**Resource Show** (admin)) — Viewing a specific resource by its UUID.
