@@ -5,8 +5,6 @@ namespace App\Repository;
 use App\DTO\ResourceListAdminFilterInput;
 use App\DTO\ResourceListFilterInput;
 use App\Entity\Resource;
-use App\Enum\BookingStatus;
-use App\Enum\ResourceType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 

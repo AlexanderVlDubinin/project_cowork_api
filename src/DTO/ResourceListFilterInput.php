@@ -22,11 +22,6 @@ class ResourceListFilterInput
         #[Assert\GreaterThanOrEqual(30, message: 'Duration must be at least 30 minutes')]
         public ?int $duration = null,
 
-        public readonly ?BookingStatus $status = null,
-
-        #[Assert\Uuid]
-        public readonly ?string $userId = null,
-
         #[Assert\GreaterThanOrEqual(1, message: 'Page number must be at least 1')]
         public readonly ?int $page = null,
 

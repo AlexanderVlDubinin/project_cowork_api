@@ -4,7 +4,6 @@ namespace App\Controller\Api\Admin;
 
 use App\DTO\ResourceInput;
 use App\DTO\ResourceListAdminFilterInput;
-use App\DTO\ResourceListFilterInput;
 use App\Entity\Resource;
 use App\Repository\ResourceRepository;
 use App\Service\ResourceService;
