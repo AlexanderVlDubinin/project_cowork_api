@@ -106,21 +106,21 @@ class ResourceUsageControllerTest extends WebTestCase
     {
         $this->logInAsClient();
 
-        // 1. Создаем тестовую бронь в статусе PENDING
+        // 1. Creating a test booking with the PENDING status
         $booking = new Booking();
         $booking
             ->setUser($this->testUser)
             ->setResource($this->testResource)
             ->setStatus(BookingStatus::PENDING)
-            ->setStartedAt(new \DateTimeImmutable('+1 hour'))
-            ->setEndedAt(new \DateTimeImmutable('+2 hours'))
+            ->setStartedAt($this->baseTime->modify('+1 hour'))
+            ->setEndedAt($this->baseTime->modify('+2 hours'))
             ->setTotalPrice(1000);
 
         $this->em->persist($booking);
         $this->em->flush();
 
 
-        // 2. Делаем запрос к эндпоинту
+        // 2. Making a request to the endpoint
         $this->client->request(
             'POST',
             sprintf('/api/booking/%s/check_in', $booking->getId()),
@@ -128,7 +128,7 @@ class ResourceUsageControllerTest extends WebTestCase
             $this->getAuthHeaders(),
         );
 
-        // 3. Проверяем ответ
+        // 3. Checking the response
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $responseData);
