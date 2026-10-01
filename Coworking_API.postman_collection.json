@@ -49,13 +49,12 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"username\": \"hollie67@gmail.com\",\r\n    \"password\": \"qwerty123456\"\r\n}",
+          "raw": "{\r\n    \"username\": \"skilback@hotmail.com\",\r\n    \"password\": \"qwerty123456\"\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -84,13 +83,12 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"type\": \"payment.succeeded\",\r\n    \"object\": {\r\n        \"id\": \"ch_fake_db30b5d8c8d3\",\r\n        \"amount\": 180\r\n    }\r\n}",
+          "raw": "{\r\n    \"type\": \"payment.succeeded\",\r\n    \"object\": {\r\n        \"id\": \"ch_fake_fca7682fa19d\",\r\n        \"amount\": 270\r\n    }\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -188,13 +186,11 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           },
           {
             "key": "",
             "value": "",
-            "type": "text",
             "disabled": true
           }
         ],
@@ -208,7 +204,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/admin/resources?startDate=2026-06-30T10:00:00Z",
+          "raw": "http://localhost:8080/api/admin/resources",
           "protocol": "http",
           "host": [
             "localhost"
@@ -218,12 +214,6 @@
             "api",
             "admin",
             "resources"
-          ],
-          "query": [
-            {
-              "key": "startDate",
-              "value": "2026-06-30T10:00:00Z"
-            }
           ]
         }
       },
@@ -295,8 +285,7 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
@@ -309,7 +298,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/admin/resource/019ed9e8-29ec-7397-8022-158b55bc2f36",
+          "raw": "http://localhost:8080/api/admin/resource/01a0f80d-95ed-709a-9559-2a32c4ca31ac",
           "protocol": "http",
           "host": [
             "localhost"
@@ -319,7 +308,7 @@
             "api",
             "admin",
             "resource",
-            "019ed9e8-29ec-7397-8022-158b55bc2f36"
+            "01a0f80d-95ed-709a-9559-2a32c4ca31ac"
           ]
         }
       },
@@ -342,8 +331,7 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
@@ -356,7 +344,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/admin/resource/019ef935-8d70-7da3-ba24-bf24a6484397",
+          "raw": "http://localhost:8080/api/admin/resource/01a0f80d-95ed-709a-9559-2a32c4ca31ac",
           "protocol": "http",
           "host": [
             "localhost"
@@ -366,7 +354,7 @@
             "api",
             "admin",
             "resource",
-            "019ef935-8d70-7da3-ba24-bf24a6484397"
+            "01a0f80d-95ed-709a-9559-2a32c4ca31ac"
           ]
         }
       },
@@ -389,8 +377,7 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
@@ -403,7 +390,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/admin/resource/019ef935-8d70-7da3-ba24-bf24a6484397",
+          "raw": "http://localhost:8080/api/admin/resource/01a0f80d-95ed-709a-9559-2a32c4ca31ac",
           "protocol": "http",
           "host": [
             "localhost"
@@ -413,7 +400,7 @@
             "api",
             "admin",
             "resource",
-            "019ef935-8d70-7da3-ba24-bf24a6484397"
+            "01a0f80d-95ed-709a-9559-2a32c4ca31ac"
           ]
         }
       },
@@ -439,13 +426,11 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           },
           {
             "key": "",
             "value": "",
-            "type": "text",
             "disabled": true
           }
         ],
@@ -459,7 +444,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/bookings?startDate=2026-06-30T10:00:00Z",
+          "raw": "http://localhost:8080/api/bookings",
           "protocol": "http",
           "host": [
             "localhost"
@@ -468,12 +453,6 @@
           "path": [
             "api",
             "bookings"
-          ],
-          "query": [
-            {
-              "key": "startDate",
-              "value": "2026-06-30T10:00:00Z"
-            }
           ]
         }
       },
@@ -545,13 +524,11 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           },
           {
             "key": "",
             "value": "",
-            "type": "text",
             "disabled": true
           }
         ],
@@ -565,7 +542,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/resources?type=desk&duration=90&startDate=2026-06-30T16:35:00Z",
+          "raw": "http://localhost:8080/api/resources?type=desk&duration=90&startDate=2026-10-01T16:35:00Z",
           "protocol": "http",
           "host": [
             "localhost"
@@ -586,7 +563,7 @@
             },
             {
               "key": "startDate",
-              "value": "2026-06-30T16:35:00Z"
+              "value": "2026-10-01T16:35:00Z"
             }
           ]
         }
@@ -610,13 +587,12 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"resourceId\": \"019ef838-c0d4-7a77-b817-a5cdb460d662\",\r\n    \"startedAt\": \"2026-06-30T16:35:00Z\",\r\n    \"duration\": 90\r\n}",
+          "raw": "{\r\n    \"resourceId\": \"01a0a538-0cdb-73f2-a6c0-8c48bbb9e299\",\r\n    \"startedAt\": \"2026-10-01T16:35:00Z\",\r\n    \"duration\": 90\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -655,8 +631,7 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
@@ -669,7 +644,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/booking/019f04c5-aff3-7f6d-9470-01e454407ad4/pay",
+          "raw": "http://localhost:8080/api/booking/01a0f845-5bc2-7c1f-9aaf-f16604e95c4e/pay",
           "protocol": "http",
           "host": [
             "localhost"
@@ -678,7 +653,7 @@
           "path": [
             "api",
             "booking",
-            "019f04c5-aff3-7f6d-9470-01e454407ad4",
+            "01a0f845-5bc2-7c1f-9aaf-f16604e95c4e",
             "pay"
           ]
         }
@@ -702,8 +677,7 @@
         "header": [
           {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
@@ -716,7 +690,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/booking/019f04c5-aff3-7f6d-9470-01e454407ad4/check_in",
+          "raw": "http://localhost:8080/api/booking/01a0f845-5bc2-7c1f-9aaf-f16604e95c4e/check_in",
           "protocol": "http",
           "host": [
             "localhost"
@@ -725,7 +699,7 @@
           "path": [
             "api",
             "booking",
-            "019f04c5-aff3-7f6d-9470-01e454407ad4",
+            "01a0f845-5bc2-7c1f-9aaf-f16604e95c4e",
             "check_in"
           ]
         }

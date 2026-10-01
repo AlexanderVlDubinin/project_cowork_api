@@ -120,15 +120,16 @@ class BookingRepository extends ServiceEntityRepository
                 ->setParameter('status', $status);
         }
 
-        $qb->andWhere('b.status NOT IN (:excludedStatuses)')
-            ->setParameter('excludedStatuses', [
-                BookingStatus::FAILED,
-                BookingStatus::EXPIRED,
-                BookingStatus::CANCELLED,
-                BookingStatus::COMPLETED,
-                BookingStatus::NO_SHOW
-            ])
-            ->orderBy('b.createdAt', $orderBy);
+        if (!$isAdmin) {
+            $qb->andWhere('b.status IN (:activeStatuses)')
+                ->setParameter('activeStatuses', [
+                    BookingStatus::PENDING,
+                    BookingStatus::CONFIRMED,
+                    BookingStatus::CHECKED_IN
+                ]);
+        }
+
+        $qb->orderBy('b.createdAt', $orderBy);
 
         return $qb->getQuery()->getArrayResult();
     }
