@@ -6,6 +6,7 @@ use App\DTO\ResourceListAdminFilterInput;
 use App\DTO\ResourceListFilterInput;
 use App\Entity\Resource;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -18,7 +19,7 @@ class ResourceRepository extends ServiceEntityRepository
         parent::__construct($registry, Resource::class);
     }
 
-    public function findListForAdminByFilters(ResourceListAdminFilterInput $filters): array
+    public function findListForAdminByFilters(ResourceListAdminFilterInput $filters): QueryBuilder
     {
         $qb = $this->createQueryBuilder('resources');
 
@@ -32,7 +33,7 @@ class ResourceRepository extends ServiceEntityRepository
             // TODO: add indexes for LOWER() and LIKE '%text%' (pg_trgm, gin OR gist)
             $qb->andWhere("LOWER(resources.title) LIKE LOWER(:query) ESCAPE '|'
                OR LOWER(resources.description) LIKE LOWER(:query) ESCAPE '|'")
-                ->setParameter('query', "%{$query}%");
+                ->setParameter('query', "%$query%");
         }
 
         if (!is_null($filters->active)) {
@@ -40,7 +41,7 @@ class ResourceRepository extends ServiceEntityRepository
                 ->setParameter('active', $filters->active);
         }
 
-        return $qb->getQuery()->getResult();
+        return $qb;
     }
 
     public function findListForClientByFilters(?ResourceListFilterInput $filters): array

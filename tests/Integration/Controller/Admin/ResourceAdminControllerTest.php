@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class ResourceAdminControllerTest extends WebTestCase
@@ -32,8 +33,8 @@ class ResourceAdminControllerTest extends WebTestCase
     {
         // DB clear
         // Clearing old users with the same email address
-        $existingUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'admin@example.com']);
-        if ($existingUser) {
+        $existingUsers = $this->em->getRepository(User::class)->findAll();
+        foreach ($existingUsers as $existingUser) {
             $this->em->remove($existingUser);
         }
         // Cleaning up old test resources to avoid overgrowth of the database
@@ -53,14 +54,26 @@ class ResourceAdminControllerTest extends WebTestCase
         $user->setRoles(['ROLE_ADMIN']);
         $this->em->persist($user);
 
-        for ($i = 1; $i <= 12; $i++) {
+        // test user
+        $user = new User();
+        $user->setFullName('Test User 1');
+        $user->setEmail('client@example.com');
+        $hashedPassword = $this->passwordHasher->hashPassword($user, 'password123');
+        $user->setPassword($hashedPassword);
+        $user->setRoles(['ROLE_USER']);
+        $this->em->persist($user);
+
+        for ($i = 1; $i <= 14; $i++) { // 14 resources, 2 meeting rooms and 12 desks
             // test resource
             $testResource = new Resource();
-            $testResource->setTitle('Test Desk № '.$i);
-            $testResource->setType(ResourceType::DESK);
-            $testResource->setDescription('Test Desk № '.$i.' Description');
+            $title = $i >= 13 ? 'Meeting Room № '.$i : 'Test Desk № '.$i;
+            $testResource->setTitle($title);
+            $type = $i >= 13 ? ResourceType::MEETING_ROOM : ResourceType::DESK;
+            $testResource->setType($type);
+            $testResource->setDescription($title.' Description');
             $testResource->setIsActive(true);
-            $testResource->setPricePerHour(500);
+            $price = $i >= 13 ? 1200 : 500;
+            $testResource->setPricePerHour($price);
             $this->em->persist($testResource);
         }
 
@@ -76,12 +89,43 @@ class ResourceAdminControllerTest extends WebTestCase
         $this->jwtToken = $jwtManager->create($testUser);
     }
 
+    private function logInAsClient(): void
+    {
+        $userRepository = $this->em->getRepository(User::class);
+        $testUser = $userRepository->findOneBy(['email' => 'client@example.com']);
+
+        $jwtManager = static::getContainer()->get(JWTTokenManagerInterface::class);
+        $this->jwtToken = $jwtManager->create($testUser);
+    }
+
     private function getAuthHeaders(): array
     {
         return [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_AUTHORIZATION' => 'Bearer ' . $this->jwtToken,
         ];
+    }
+
+    public function testUnauthorizedUserRequestReturns401(): void
+    {
+        $this->client->request('GET', '/api/admin/resources');
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testRegularUserRequestReturns403()
+    {
+        $this->logInAsClient();
+
+        $this->client->request(
+            'GET',
+            '/api/admin/resources',
+            [],
+            [],
+            $this->getAuthHeaders(),
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testGettingResourcesListSuccess(): void
@@ -105,7 +149,83 @@ class ResourceAdminControllerTest extends WebTestCase
         $resourceRepository = $this->em->getRepository(Resource::class);
         $testResources = $resourceRepository->findAll();
 
-        $this->assertCount(12, $testResources);
+        $this->assertCount(14, $testResources);
+    }
+
+    public function testGettingResourcesListWithTypeParameterSuccess(): void
+    {
+        $this->logInAsAdmin();
+
+        $this->client->request(
+            'GET',
+            '/api/admin/resources',
+            [
+                'type' => ResourceType::DESK->value,
+            ],
+            [],
+            $this->getAuthHeaders(),
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('data', $responseData);
+        $this->assertCount(10, $responseData['data']);
+
+        $resourceRepository = $this->em->getRepository(Resource::class);
+        $testResourcesDesk = $resourceRepository->findBy(['type' => ResourceType::DESK->value]);
+        $testResourcesAll = $resourceRepository->findAll();
+
+        $this->assertCount(12, $testResourcesDesk);
+        $this->assertCount(14, $testResourcesAll);
+    }
+
+    public function testGettingResourcesListWithQuerySearchSuccess(): void
+    {
+        $this->logInAsAdmin();
+
+        $this->client->request(
+            'GET',
+            '/api/admin/resources',
+            [
+                'query' => 'Meeting',
+            ],
+            [],
+            $this->getAuthHeaders(),
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('data', $responseData);
+        $this->assertCount(2, $responseData['data']);
+    }
+
+    public function testGettingResourcesListForSecondPageSuccess(): void
+    {
+        $this->logInAsAdmin();
+
+        $this->client->request(
+            'GET',
+            '/api/admin/resources',
+            [
+                'page' => 2,
+                'limit' => 10,
+            ],
+            [],
+            $this->getAuthHeaders(),
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('data', $responseData);
+        $this->assertCount(4, $responseData['data']);
+
+        $resourceRepository = $this->em->getRepository(Resource::class);
+        $testResources = $resourceRepository->findAll();
+
+        $this->assertCount(14, $testResources);
     }
 
     public function testGettingResourcesListWithWrongParameter(): void
@@ -308,6 +428,41 @@ class ResourceAdminControllerTest extends WebTestCase
         );
     }
 
+    public function testUpdatingResourceWithExistingNameFails(): void
+    {
+        $this->logInAsAdmin();
+
+        $title = 'Test Desk № 12';
+        $resourceRepository = $this->em->getRepository(Resource::class);
+        $testResource = $resourceRepository->findOneBy(['title' => $title]);
+
+        $newTitle = 'Test Desk № 1';
+        $this->client->request(
+            'PUT',
+            '/api/admin/resource/'.$testResource->getId()->toString(),
+            [],
+            [],
+            $this->getAuthHeaders(),
+            json_encode([
+                'title' => $newTitle,
+                'type' => ResourceType::DESK,
+                'description' => 'Test Desk № 1 description.',
+                'isActive' => true,
+                'pricePerHour' => 500
+            ])
+        );
+
+        // there should be a 409 HTTP_CONFLICT status
+        $this->assertEquals(409, $this->client->getResponse()->getStatusCode());
+
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('title', $responseData);
+        $this->assertArrayHasKey('status', $responseData);
+        $this->assertArrayHasKey('detail', $responseData);
+        $this->assertEquals(409, $responseData['status']);
+        $this->assertEquals('A desk/room with that name already exists', $responseData['detail']);
+    }
+
     public function testDeletingResource(): void
     {
         $this->logInAsAdmin();
@@ -330,4 +485,38 @@ class ResourceAdminControllerTest extends WebTestCase
         $testResource = $resourceRepository->findOneBy(['id' => $resourceId]);
         $this->assertNull($testResource);
     }
+
+    public function testShowingResourceNotFoundReturnsJson(): void
+    {
+        $this->logInAsAdmin();
+
+        // Valid UUID (36 characters), which is definitely not in the database
+        $nonExistentUuid = '00000000-0000-0000-0000-000000000000';
+
+        $this->client->request(
+            'GET',
+            '/api/admin/resource/' . $nonExistentUuid,
+            [],
+            [],
+            $this->getAuthHeaders()
+        );
+
+        $this->assertEquals(404, $this->client->getResponse()->getStatusCode());
+
+        // Make sure that the JSON format is specified in the response header.
+        $contentType = $this->client->getResponse()->headers->get('Content-Type');
+        $this->assertStringContainsString('json', $contentType);
+
+        // Checking that the response body is successfully parsed as JSON.
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertIsArray($responseData);
+
+        // Checking the Symfony Standard Error structure (RFC 7807 Problem Details)
+        $this->assertArrayHasKey('title', $responseData);
+        $this->assertArrayHasKey('status', $responseData);
+        $this->assertEquals(404, $responseData['status']);
+    }
+
+
+    // TODO: Add a test for whether a resource has an active booking
 }

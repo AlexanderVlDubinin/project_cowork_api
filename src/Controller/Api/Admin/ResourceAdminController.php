@@ -7,7 +7,6 @@ use App\DTO\ResourceListAdminFilterInput;
 use App\Entity\Resource;
 use App\Repository\ResourceRepository;
 use App\Service\ResourceService;
-use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,11 +15,10 @@ use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/api/admin')]
+#[Route('/api/admin', defaults: ['_format' => 'json'])]
 final class ResourceAdminController extends AbstractController
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
         private readonly ResourceService $resourceService
     ) {}
 
@@ -35,11 +33,9 @@ final class ResourceAdminController extends AbstractController
     ): JsonResponse
     {
         $filters ??= new ResourceListAdminFilterInput();
-        $resources = $repository->findListForAdminByFilters($filters);
+        $queryBuilder = $repository->findListForAdminByFilters($filters);
 
-        $page = $filters->page ?? 1;
-        $limit = $filters->limit ?? 10;
-        $resourcesPagination = $paginator->paginate($resources, $page, $limit);
+        $resourcesPagination = $paginator->paginate($queryBuilder, $filters->page ?? 1, $filters->limit ?? 10);
 
         return $this->json(
             $resourcesPagination,
@@ -58,12 +54,7 @@ final class ResourceAdminController extends AbstractController
     public function create(
         #[MapRequestPayload(validationGroups: ['Default', 'create'])] ResourceInput $input
     ): JsonResponse {
-        $resource = new Resource();
-
-        $this->resourceService->mapInputToEntity($input, $resource);
-
-        $this->entityManager->persist($resource);
-        $this->entityManager->flush();
+        $resource = $this->resourceService->createFromInput($input);
 
         return $this->json($resource,
             Response::HTTP_CREATED,
@@ -99,9 +90,7 @@ final class ResourceAdminController extends AbstractController
         Resource $resource,
         #[MapRequestPayload] ResourceInput $input
     ): JsonResponse {
-        $this->resourceService->mapInputToEntity($input, $resource);
-
-        $this->entityManager->flush();
+        $resource = $this->resourceService->updateFromInput($resource, $input);
 
         return $this->json(
             $resource,
@@ -119,8 +108,7 @@ final class ResourceAdminController extends AbstractController
     #[Route('/resource/{id}', name: 'api_admin_resource_delete', requirements: ['id' => '[a-fA-F0-9-]{36}'], methods: ['DELETE'])]
     public function delete(Resource $resource): JsonResponse
     {
-        $this->entityManager->remove($resource);
-        $this->entityManager->flush();
+        $this->resourceService->delete($resource);
 
         return $this->json(null, Response::HTTP_NO_CONTENT);
     }
