@@ -153,4 +153,33 @@ class BookingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function findBookingsForResourcesAndDate(
+        array $resources,
+        \DateTimeImmutable $start,
+        \DateTimeImmutable $end
+    ): array
+    {
+        if (empty($resources)) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('b')
+            ->where('b.resource IN (:resources)')
+            ->andWhere('b.startedAt < :end')
+            ->andWhere('b.endedAt > :start')
+            ->andWhere('b.status IN (:activeStatuses)')
+            ->setParameter('resources', $resources)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->setParameter('activeStatuses', [
+                BookingStatus::PENDING,
+                BookingStatus::CONFIRMED,
+                BookingStatus::CHECKED_IN
+            ])
+            ->orderBy('b.resource', 'ASC')
+            ->addOrderBy('b.startedAt', 'ASC') // Important for the gap search algorithm
+            ->getQuery()
+            ->getResult();
+    }
 }
