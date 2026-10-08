@@ -46,16 +46,4 @@ class BookingListFilterInput
         }
         return $this->endDate <= $this->startDate;
     }
-
-    public function bookingsOutputSort($bookingsOutput): array
-    {
-        usort($bookingsOutput, function ($a, $b) {
-            $startA = $a['startedAt'] ?? '';
-            $startB = $b['startedAt'] ?? '';
-
-            return $startB <=> $startA;
-        });
-
-        return $bookingsOutput;
-    }
 }

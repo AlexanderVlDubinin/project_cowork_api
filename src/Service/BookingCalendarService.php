@@ -68,4 +68,74 @@ final class BookingCalendarService
 
         return (int)$totalMinutes;
     }
+
+    /**
+     * Helper: adds a set number of WORKING minutes to the date, transferring the remainder to the following days
+     * and skipping weekends
+     */
+    public function addWorkingMinutes(\DateTimeImmutable $dateTime, int $minutes): \DateTimeImmutable
+    {
+        $current = $dateTime;
+        $remaining = $minutes;
+
+        while ($remaining > 0) {
+            // Skipping weekends
+            if ((int)$current->format('N') >= 6) {
+                $current = $current->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
+                continue;
+            }
+
+            $workEnd = $current->setTime(BookingCalendarService::WORK_END_HOUR, 0, 0);
+
+            if ($current >= $workEnd) {
+                $current = $current->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
+                continue;
+            }
+
+            // How many working minutes are left before the coworking space closes during the current day
+            $availableMinutesToday = ($workEnd->getTimestamp() - $current->getTimestamp()) / 60;
+
+            if ($remaining <= $availableMinutesToday) {
+                $current = $current->modify("+$remaining minutes");
+                $remaining = 0;
+            } else {
+                $remaining -= $availableMinutesToday;
+                $current = $current->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
+            }
+        }
+
+        return $current;
+    }
+
+    /**
+     * Checking the 30-minute limit on the first day and SHIFTING the START
+     */
+    public function firstDayTimeLimitCheckAndShift(
+        \DateTimeImmutable $start,
+        ?string $endDate,
+        ?int $duration,
+        int $totalWorkingMinutes): array
+    {
+        $workEndToday = $start->setTime(self::WORK_END_HOUR, 0, 0);
+        $availableMinutesToday = ($workEndToday->getTimestamp() - $start->getTimestamp()) / 60;
+
+        $durationToCheck = $duration ?? (empty($endDate) ? 30 : null);
+        $targetMinutes = $durationToCheck ?? $totalWorkingMinutes;
+
+        // If the requested time is longer than the remaining time on the first day,
+        // and there are less than 30 minutes left:
+        $isFirstDayShift = false;
+        if ($targetMinutes > $availableMinutesToday && $availableMinutesToday < 30) {
+            // Emulating a shift of the start to the morning of the next working day
+            $nextDayStart = $start->modify('tomorrow midnight')->setTime(self::WORK_START_HOUR, 0, 0);
+            $start = $this->normalizeStartDate($nextDayStart);
+            $isFirstDayShift = true;
+        }
+
+        return [
+            'start' => $start,
+            'durationToCheck' => $durationToCheck,
+            'isFirstDayShift' => $isFirstDayShift
+        ];
+    }
 }

@@ -8,26 +8,19 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ValidBookingDates]
 class BookingInput
 {
-    #[Assert\NotBlank]
-    #[Assert\Uuid]
+    #[Assert\NotBlank(message: 'Resource ID is required')]
+    #[Assert\Uuid(message: 'Resource ID must be a valid UUID')]
     public string $resourceId;
 
-    #[Assert\NotBlank]
-    // #[Assert\DateTime(\DateTimeInterface::ATOM)]
+    #[Assert\NotBlank(message: 'Start date is required')]
     #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'Date must be in ATOM format (ISO 8601)')]
     public string $startedAt;
 
-    #[Assert\NotBlank]
-    #[Assert\GreaterThanOrEqual(30, message: 'Duration must be at least 30 minutes')]
-    public int $duration;
+    #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'End date must be in ATOM format (ISO 8601)')]
+    public ?string $endDate = null;
 
-    /*
-    #[Assert\IsFalse(message: 'Start date must be in the future')]
-    public function isStartedAtInPast(): bool
-    {
-        return $this->startedAt <= new \DateTimeImmutable('now');
-    }
-    */
+    #[Assert\GreaterThanOrEqual(30, message: 'Duration must be at least 30 minutes')]
+    public ?int $duration = null;
 
     public function getStartedAtObject($tz = ''): \DateTimeImmutable
     {
@@ -38,10 +31,5 @@ class BookingInput
         }
 
         return $startedAt;
-    }
-
-    public function getEndedAtObject(\DateTimeImmutable $startedAt, int $duration): \DateTimeImmutable
-    {
-        return $startedAt->modify("+{$duration} minutes");
     }
 }

@@ -84,21 +84,10 @@ class ResourceListFilterInput
             $start = $calendar->normalizeStartDate($rawStart);
 
             // 4. Checking the 30-minute limit on the first day and SHIFTING the START
-            $workEndToday = $start->setTime(BookingCalendarService::WORK_END_HOUR, 0, 0);
-            $availableMinutesToday = ($workEndToday->getTimestamp() - $start->getTimestamp()) / 60;
-
-            $durationToCheck = $this->duration ?? (empty($this->endDate) ? 30 : null);
-            $targetMinutes = $durationToCheck ?? $totalWorkingMinutes;
-
-            // If the requested time is longer than the remaining time on the first day,
-            // and there are less than 30 minutes left:
-            $isFirstDayShift = false;
-            if ($targetMinutes > $availableMinutesToday && $availableMinutesToday < 30) {
-                // Emulating a shift of the start to the morning of the next working day
-                $nextDayStart = $start->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
-                $start = $calendar->normalizeStartDate($nextDayStart);
-                $isFirstDayShift = true;
-            }
+            $checkResult = $calendar->firstDayTimeLimitCheckAndShift($start, $this->endDate, $this->duration, $totalWorkingMinutes);
+            $start = $checkResult['start'];
+            $durationToCheck = $checkResult['durationToCheck'];
+            $isFirstDayShift = $checkResult['isFirstDayShift'];
 
             // Evaluating the end relative to the normalized start (+ shift)
             $end = !empty($this->endDate)

@@ -185,7 +185,7 @@ readonly class ResourceAvailabilityService
 
             // Calculation of the potential end of the segment
             // (with automatic end-to-end transfer through non-working hours/days)
-            $slotEnd = $this->addWorkingMinutes($currentPointer, $neededDuration);
+            $slotEnd = $this->calendarService->addWorkingMinutes($currentPointer, $neededDuration);
 
             // If the required interval is beyond the global search limit (end)
             if ($slotEnd > $end) {
@@ -261,43 +261,5 @@ readonly class ResourceAvailabilityService
             'start' => $start,
             'end' => $end
         ];
-    }
-
-    /**
-     * Helper: adds a set number of WORKING minutes to the date, transferring the remainder to the following days
-     * and skipping weekends
-     */
-    private function addWorkingMinutes(\DateTimeImmutable $dateTime, int $minutes): \DateTimeImmutable
-    {
-        $current = $dateTime;
-        $remaining = $minutes;
-
-        while ($remaining > 0) {
-            // Skipping weekends
-            if ((int)$current->format('N') >= 6) {
-                $current = $current->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
-                continue;
-            }
-
-            $workEnd = $current->setTime(BookingCalendarService::WORK_END_HOUR, 0, 0);
-
-            if ($current >= $workEnd) {
-                $current = $current->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
-                continue;
-            }
-
-            // How many working minutes are left before the coworking closes today
-            $availableMinutesToday = ($workEnd->getTimestamp() - $current->getTimestamp()) / 60;
-
-            if ($remaining <= $availableMinutesToday) {
-                $current = $current->modify("+$remaining minutes");
-                $remaining = 0;
-            } else {
-                $remaining -= $availableMinutesToday;
-                $current = $current->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
-            }
-        }
-
-        return $current;
     }
 }

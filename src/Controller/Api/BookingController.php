@@ -10,7 +10,7 @@ use App\Entity\User;
 use App\Enum\BookingStatus;
 use App\Message\SendEmailNotificationMessage;
 use App\Repository\BookingRepository;
-use App\Repository\ResourceRepository;
+use App\Service\BookingCalendarService;
 use App\Service\BookingManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
@@ -26,11 +26,13 @@ use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
+#[Route('/api', defaults: ['_format' => 'json'])]
 final class BookingController extends AbstractController
 {
-    #[Route('/api/bookings', name: 'api_client_bookings', methods: ['GET'])]
+    #[Route('/bookings', name: 'api_client_bookings', methods: ['GET'])]
     public function bookingsList(
         BookingRepository $bookingRepository,
+        BookingCalendarService $calendarService,
         PaginatorInterface $paginator,
         Security $security,
         #[MapQueryString(validationFailedStatusCode: 400)] ?BookingListFilterInput $filters = null
@@ -42,22 +44,23 @@ final class BookingController extends AbstractController
         }
 
         $filters ??= new BookingListFilterInput();
-
         $isAdmin = $security->isGranted('ROLE_ADMIN');
-        $bookingsOutput = $bookingRepository->findBookingsList($isAdmin ? null : $user, $isAdmin ? $filters : null, $isAdmin);
-        $bookingsOutput = $filters->bookingsOutputSort($bookingsOutput);
 
-        $page = $filters->page ?? 1;
-        $limit = $filters->limit ?? 10;
-        $bookingsOutputPagination = $paginator->paginate($bookingsOutput, $page, $limit);
+        $rawBookings = $bookingRepository->findBookingsList($isAdmin ? null : $user, $isAdmin ? $filters : null, $isAdmin);
+        $preparedBookings = BookingOutput::bookingsOutputPrepare($rawBookings, $calendarService);
+
+        $bookingsOutputPagination = $paginator->paginate(
+            $preparedBookings,
+                $filters->page ?? 1,
+                $filters->limit ?? 10
+        );
 
         return $this->json($bookingsOutputPagination);
     }
 
-    #[Route('/api/booking', name: 'api_client_booking_create', methods: ['POST'])]
+    #[Route('/booking', name: 'api_client_booking_create', methods: ['POST'])]
     public function createBooking(
         #[MapRequestPayload] BookingInput $dtoInput,
-        ResourceRepository $resourceRepository,
         BookingManager $bookingManager
     ): JsonResponse
     {
@@ -66,19 +69,11 @@ final class BookingController extends AbstractController
             throw $this->createAccessDeniedException('User is not logged in or has the wrong class.');
         }
 
-        $resource = $resourceRepository->find($dtoInput->resourceId);
-        if (!$resource || !$resource->isActive()) {
-            return $this->json([
-                'message' => 'Available resource not found',
-                'errors' => ['error' => 'Resource not found or unavailable for booking.']
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $startedAt = $dtoInput->getStartedAtObject('UTC');
-        $endedAt = $dtoInput->getEndedAtObject($startedAt, $dtoInput->duration);
+        $rawStart = $dtoInput->getStartedAtObject('UTC');
 
         try {
-            $booking = $bookingManager->createBooking($user, $resource, $startedAt, $endedAt);
+            // Passing the parameters for end-to-end parsing
+            $booking = $bookingManager->createBookingFromParams($user, $dtoInput, $rawStart);
             $bookingOutput = BookingOutput::getBookingOutput($booking);
             $jsonDataForReturn = $this->json($bookingOutput, Response::HTTP_CREATED);
         } catch (\LogicException $e) {
@@ -96,7 +91,7 @@ final class BookingController extends AbstractController
         return $jsonDataForReturn;
     }
 
-    #[Route('/api/booking/{id}', name: 'api_client_booking_cancel', methods: ['DELETE'])]
+    #[Route('/booking/{id}', name: 'api_client_booking_cancel', methods: ['DELETE'])]
     public function cancelBooking(
         Booking $booking,
         EntityManagerInterface $entityManager,

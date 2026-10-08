@@ -2,13 +2,14 @@
 
 namespace App\Service;
 
+use App\DTO\BookingInput;
 use App\Entity\Booking;
-use App\Entity\Resource;
 use App\Entity\User;
 use App\Enum\BookingStatus;
 use App\Message\CheckBookingTimeoutMessage;
 use App\Message\SendEmailNotificationMessage;
 use App\Repository\BookingRepository;
+use App\Repository\ResourceRepository;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -20,43 +21,94 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
 class BookingManager
 {
     public function __construct(
+        private readonly ResourceRepository     $resourceRepository,
         private readonly BookingRepository      $bookingRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly MessageBusInterface    $messageBus,
         private readonly LoggerInterface        $logger,
+        private readonly BookingCalendarService $calendarService,
         private readonly int                    $bookingPaymentDelay,
         private readonly int                    $bookingTechBreak,
     ) {}
 
-    public function createBooking(
+    public function createBookingFromParams(
         User $user,
-        Resource $resource,
-        \DateTimeImmutable $start,
-        \DateTimeImmutable $end
+        BookingInput $bookingInput,
+        \DateTimeImmutable $rawStart
     ): Booking {
+        $resourceId = $bookingInput->resourceId;
+        $rawEndDate = $bookingInput->endDate;
+        $duration = $bookingInput->duration;
 
-        // Additional time checks
-        $isStartCorrect = $this->isWorkingHours($start);
-        if (!$isStartCorrect) {
-            throw new \LogicException('The start time is not within working hours. The service is open on weekdays from 8:00 to 20:00.');
+        // Checking the resource
+        $resource = $this->resourceRepository->find($resourceId);
+        if (!$resource || !$resource->isActive()) {
+            throw new ConflictHttpException('Resource not found or unavailable for booking.');
         }
-        $isEndCorrect = $this->isWorkingHours($end);
-        if (!$isEndCorrect) {
-            throw new \LogicException('The end time is not within working hours. The service is open on weekdays from 8:00 to 20:00.');
+
+        // 1. SECURITY CHECK OF SOURCE DATES
+        if (!empty($rawEndDate)) {
+            $rawEnd = new \DateTimeImmutable($rawEndDate);
+        } else {
+            // If the end is not transmitted, temporarily calculate it as 20:00 from the start date.
+            $rawEnd = $rawStart->setTime(BookingCalendarService::WORK_END_HOUR, 0, 0);
         }
+
+        if ($rawEnd <= $rawStart) {
+            throw new \LogicException('The end date must be later than the start date.');
+        }
+
+        // If the entire transmitted interval is outside of business hours (nights or weekends).
+        $initialWorkingMinutes = $this->calendarService->calculateWorkingMinutesBetween($rawStart, $rawEnd);
+        if ($initialWorkingMinutes === 0) {
+            throw new \LogicException('The requested interval is entirely outside of working hours (nights or weekends).');
+        }
+
+        // 2. NORMALIZATION OF THE STARTING POINT
+        $start = $this->calendarService->normalizeStartDate($rawStart);
+
+        // 3.FIRST DAY RULE (Minimum 30 minutes of working time on the first day)
+        $checkResult = $this->calendarService->firstDayTimeLimitCheckAndShift($start, $rawEndDate, $duration, $initialWorkingMinutes);
+        $start = $checkResult['start'];
+
+        // 4. THE FINAL CALCULATION OF ENDED_AT
+        if ($duration !== null) {
+            // If duration is passed, calculate the end-to-end by working hours and weekends.
+            $end = $this->calendarService->addWorkingMinutes($start, $duration);
+        } else {
+            // If there is no duration, take the transmitted fixed end (or default 20:00 from the normalized start)
+            if (!empty($rawEndDate)) {
+                $end = new \DateTimeImmutable($rawEndDate);
+            } else {
+                $end = $start->setTime(BookingCalendarService::WORK_END_HOUR, 0, 0);
+            }
+        }
+
+        if ($start >= $end) {
+            throw new \LogicException('Calculated start date cannot be greater than or equal to end date.');
+        }
+
+        // 5. CHECKING OVERLAYS TAKING INTO ACCOUNT THE TECHNICAL BREAK
 
         // LEVEL 1: CONTROL AT THE LOGIC LEVEL (Race Condition)
-        $dbSearchStart = $start->modify("-{$this->bookingTechBreak} minutes");
-        $dbSearchEnd = $end->modify("+{$this->bookingTechBreak} minutes");
-        $hasIntersection = $this->bookingRepository->hasOverlappingBookings(
-            $resource,
-            $dbSearchStart,
-            $dbSearchEnd
-        );
+        if ($start->format('H:i') !== '08:00') {
+            $dbSearchStart = $start->modify("-{$this->bookingTechBreak} minutes");
+        } else {
+            $dbSearchStart = $start;
+        }
 
+        if ($end->format('H:i') !== '20:00') {
+            $dbSearchEnd = $end->modify("+{$this->bookingTechBreak} minutes");
+        } else {
+            $dbSearchEnd = $end;
+        }
+
+        $hasIntersection = $this->bookingRepository->hasOverlappingBookings($resource, $dbSearchStart, $dbSearchEnd);
         if ($hasIntersection) {
             throw new ConflictHttpException('This time interval is already occupied for the selected resource.');
         }
+
+        // 6. SAVING AND COST
 
         // LEVEL 2: DATABASE-LEVEL CONTROL (Race Condition)
         try {
@@ -67,7 +119,9 @@ class BookingManager
             $booking->setEndedAt($end);
             $booking->setStatus(BookingStatus::PENDING);
 
-            $booking->setTotalPrice($this->calculatePrice($resource, $start, $end));
+            $workingMinutes = $this->calendarService->calculateWorkingMinutesBetween($start, $end);
+            $hours = $workingMinutes / 60;
+            $booking->setTotalPrice((int)ceil($resource->getPricePerHour() * $hours));
 
             $this->entityManager->persist($booking);
             $this->entityManager->flush();
@@ -76,17 +130,18 @@ class BookingManager
         } catch (DriverException $e) {
             // If this error occurs, it means that the no_overlapping_books trigger in PostgreSQL has been triggered.
             // This protected against a parallel race condition request.
-            $sqlState = $e->getSQLState(); // For "overlap" error, it is '23P01'
+            $sqlState = $e->getSQLState();
             $errorMessage = $e->getMessage();
 
             if ($sqlState === '23P01' || str_contains($errorMessage, 'no_overlapping_bookings')) {
                 // Turning a Database Error into a Symfony HTTP 409 Conflict
                 throw new ConflictHttpException('Unfortunately, this time has just been booked. Try something else.', $e);
             }
-
             // If this is some other DB error, skip it further
             throw new ConflictHttpException('An error occurred at the database level.', $e);
         }
+
+        // 7. NOTIFICATIONS AND PAYMENT TIMEOUTS
 
         // Instant notification of booking creation
         try {
@@ -106,32 +161,12 @@ class BookingManager
                 [new DelayStamp($delay)]
             );
         } catch (ExceptionInterface $e) {
-            $this->logger->critical('CRITICAL ERROR: Booking timeout check could not be scheduled: ' . $e->getMessage(), [
+            $this->logger->critical('CRITICAL ERROR: Booking timeout check failed: ' . $e->getMessage(), [
                 'booking_id' => $bookingId->toString()
             ]);
             throw new \RuntimeException('Booking confirmation failed due to queue error.');
         }
 
         return $booking;
-    }
-
-    private function calculatePrice(
-        Resource $resource,
-        \DateTimeImmutable $start,
-        \DateTimeImmutable $end
-    ): int
-    {
-        $durationInSeconds = $end->getTimestamp() - $start->getTimestamp();
-        $hours = $durationInSeconds / 3600;
-
-        return ceil($resource->getPricePerHour() * $hours);
-    }
-
-    private function isWorkingHours(\DateTimeInterface $date): bool
-    {
-        $dayOfWeek = (int)$date->format('N');
-        $currentHour = (int)$date->format('G');
-
-        return $dayOfWeek < 6 && ($currentHour >= 8 && $currentHour < 20);
     }
 }
