@@ -16,6 +16,7 @@ class BookingDatabaseTest extends WebTestCase
 {
     private EntityManagerInterface $em;
     private UserPasswordHasherInterface $passwordHasher;
+    private int $bookingTechBreak = 5; // A stub for tech break
 
     protected function setUp(): void
     {
@@ -73,6 +74,30 @@ class BookingDatabaseTest extends WebTestCase
     }
 
     /**
+     * HELPER: Adjusts the date to account for the booking technical break
+     *
+     * @param \DateTimeImmutable $date
+     * @param string $dateType start or end
+     * @return \DateTimeImmutable
+     */
+    private function getDbDate(\DateTimeImmutable $date, string $dateType): \DateTimeImmutable
+    {
+        $dateDb = $date;
+        if ($dateType === 'start') {
+            if ($date->format('H:i') !== '08:00') {
+                $dateDb = $date->modify("-{$this->bookingTechBreak} minutes");
+            }
+        }
+        if ($dateType === 'end') {
+            if ($date->format('H:i') !== '20:00') {
+                $dateDb = $date->modify("+{$this->bookingTechBreak} minutes");
+            }
+        }
+
+        return $dateDb;
+    }
+
+    /**
      * Test that the database exclusion constraint prevents overlapping bookings
      */
     public function testDbExclusionConstraintPreventsOverlapping(): void
@@ -83,39 +108,91 @@ class BookingDatabaseTest extends WebTestCase
 
         $resource = $this->em->getRepository(Resource::class)->findOneBy([]);
 
-        $createDate = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
+        $createDate = (new \DateTimeImmutable('next week monday'))
             ->setTime(10, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
-        $startDate1 = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
-            ->setTime(12, 0, 0)
-            ->format('Y-m-d\TH:i:s\Z');
-        $endDate1 = (new \DateTimeImmutable($startDate1))
-            ->modify('+2 hours')
-            ->format('Y-m-d\TH:i:s\Z');
+        $startDate1 = (new \DateTimeImmutable('next week monday'))->setTime(12, 0, 0);
+        $startDateDb1 = $this->getDbDate($startDate1, 'start');
+        $endDate1 = (new \DateTimeImmutable($startDate1->format('Y-m-d\TH:i:s\Z')))->modify('+2 hours');
+        $endDateDb1 = $this->getDbDate($endDate1, 'end');
 
         $booking1 = new Booking();
         $booking1->setResource($resource)
-            ->setStartedAt(new \DateTimeImmutable($startDate1))
-            ->setEndedAt(new \DateTimeImmutable($endDate1))
+            ->setStartedAt(new \DateTimeImmutable($startDate1->format('Y-m-d\TH:i:s\Z')))
+            ->setEndedAt(new \DateTimeImmutable($endDate1->format('Y-m-d\TH:i:s\Z')))
+            ->setDbBlockedFrom(new \DateTimeImmutable($startDateDb1->format('Y-m-d\TH:i:s\Z')))
+            ->setDbBlockedTo(new \DateTimeImmutable($endDateDb1->format('Y-m-d\TH:i:s\Z')))
             ->setStatus(BookingStatus::CONFIRMED)
             ->setTotalPrice(1000)
             ->setCreatedAt(new \DateTimeImmutable($createDate))
             ->setUser($testUser);
 
-        $startDate2 = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
-            ->setTime(13, 0, 0)
-            ->format('Y-m-d\TH:i:s\Z');
-        $endDate2 = (new \DateTimeImmutable($startDate2))
-            ->modify('+2 hours')
-            ->format('Y-m-d\TH:i:s\Z');
+        $startDate2 = (new \DateTimeImmutable('next week monday'))->setTime(13, 0, 0);
+        $startDateDb2 = $this->getDbDate($startDate2, 'start');
+        $endDate2 = (new \DateTimeImmutable($startDate2->format('Y-m-d\TH:i:s\Z')))->modify('+2 hours');
+        $endDateDb2 = $this->getDbDate($endDate2, 'end');
 
         $booking2 = new Booking();
         $booking2->setResource($resource)
-            ->setStartedAt(new \DateTimeImmutable($startDate2)) // Overlaps the first one!
-            ->setEndedAt(new \DateTimeImmutable($endDate2))
+            ->setStartedAt(new \DateTimeImmutable($startDate2->format('Y-m-d\TH:i:s\Z'))) // Overlaps the first one!
+            ->setEndedAt(new \DateTimeImmutable($endDate2->format('Y-m-d\TH:i:s\Z')))
+            ->setDbBlockedFrom(new \DateTimeImmutable($startDateDb2->format('Y-m-d\TH:i:s\Z')))
+            ->setDbBlockedTo(new \DateTimeImmutable($endDateDb2->format('Y-m-d\TH:i:s\Z')))
+            ->setStatus(BookingStatus::PENDING)
+            ->setTotalPrice(1000)
+            ->setCreatedAt(new \DateTimeImmutable($createDate))
+            ->setUser($testUser2);
+
+        $this->em->persist($booking1);
+        $this->em->persist($booking2);
+
+        // The database is expected to throw a uniqueness violation exception.
+        $this->expectException(DriverException::class);
+
+        $this->em->flush();
+    }
+
+    /**
+     * Test that the database exclusion constraint prevents overlapping bookings
+     */
+    public function testDbExclusionConstraintPreventsTechBreakOverlapping(): void
+    {
+        $userRepository = $this->em->getRepository(User::class);
+        $testUser = $userRepository->findOneBy(['email' => 'client@example.com']);
+        $testUser2 = $userRepository->findOneBy(['email' => 'client2@example.com']);
+
+        $resource = $this->em->getRepository(Resource::class)->findOneBy([]);
+
+        $createDate = (new \DateTimeImmutable('next week monday'))
+            ->setTime(10, 0, 0)
+            ->format('Y-m-d\TH:i:s\Z');
+        $startDate1 = (new \DateTimeImmutable('next week monday'))->setTime(12, 0, 0);
+        $startDateDb1 = $this->getDbDate($startDate1, 'start');
+        $endDate1 = (new \DateTimeImmutable($startDate1->format('Y-m-d\TH:i:s\Z')))->modify('+2 hours');
+        $endDateDb1 = $this->getDbDate($endDate1, 'end');
+
+        $booking1 = new Booking();
+        $booking1->setResource($resource)
+            ->setStartedAt(new \DateTimeImmutable($startDate1->format('Y-m-d\TH:i:s\Z')))
+            ->setEndedAt(new \DateTimeImmutable($endDate1->format('Y-m-d\TH:i:s\Z')))
+            ->setDbBlockedFrom(new \DateTimeImmutable($startDateDb1->format('Y-m-d\TH:i:s\Z')))
+            ->setDbBlockedTo(new \DateTimeImmutable($endDateDb1->format('Y-m-d\TH:i:s\Z')))
+            ->setStatus(BookingStatus::CONFIRMED)
+            ->setTotalPrice(1000)
+            ->setCreatedAt(new \DateTimeImmutable($createDate))
+            ->setUser($testUser);
+
+        $startDate2 = (new \DateTimeImmutable('next week monday'))->setTime(14, 2, 0);
+        $startDateDb2 = $this->getDbDate($startDate2, 'start');
+        $endDate2 = (new \DateTimeImmutable($startDate2->format('Y-m-d\TH:i:s\Z')))->modify('+2 hours');
+        $endDateDb2 = $this->getDbDate($endDate2, 'end');
+
+        $booking2 = new Booking();
+        $booking2->setResource($resource)
+            ->setStartedAt(new \DateTimeImmutable($startDate2->format('Y-m-d\TH:i:s\Z'))) // Overlaps the first one!
+            ->setEndedAt(new \DateTimeImmutable($endDate2->format('Y-m-d\TH:i:s\Z')))
+            ->setDbBlockedFrom(new \DateTimeImmutable($startDateDb2->format('Y-m-d\TH:i:s\Z')))
+            ->setDbBlockedTo(new \DateTimeImmutable($endDateDb2->format('Y-m-d\TH:i:s\Z')))
             ->setStatus(BookingStatus::PENDING)
             ->setTotalPrice(1000)
             ->setCreatedAt(new \DateTimeImmutable($createDate))
@@ -148,35 +225,30 @@ class BookingDatabaseTest extends WebTestCase
             BookingStatus::FAILED,
         ];
 
-        $createDate = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
+        $createDate = (new \DateTimeImmutable('next week monday'))
             ->setTime(10, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
 
-        $startDate1 = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
-            ->setTime(12, 0, 0)
-            ->format('Y-m-d\TH:i:s\Z');
+        $startDate1 = (new \DateTimeImmutable('next week monday'))->setTime(12, 0, 0);
+        $startDateDb1 = $this->getDbDate($startDate1, 'start');
 
-        $endDate1 = (new \DateTimeImmutable($startDate1))
-            ->modify('+2 hours')
-            ->format('Y-m-d\TH:i:s\Z');
+        $endDate1 = (new \DateTimeImmutable($startDate1->format('Y-m-d\TH:i:s\Z')))->modify('+2 hours');
+        $endDateDb1 = $this->getDbDate($endDate1, 'end');
 
-        $startDate2 = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
-            ->setTime(13, 0, 0) // Overlaps the first interval!
-            ->format('Y-m-d\TH:i:s\Z');
+        $startDate2 = (new \DateTimeImmutable('next week monday'))->setTime(13, 0, 0); // Overlaps the first interval!
+        $startDateDb2 = $this->getDbDate($startDate2, 'start');
 
-        $endDate2 = (new \DateTimeImmutable($startDate2))
-            ->modify('+2 hours')
-            ->format('Y-m-d\TH:i:s\Z');
+        $endDate2 = (new \DateTimeImmutable($startDate2->format('Y-m-d\TH:i:s\Z')))->modify('+2 hours');
+        $endDateDb2 = $this->getDbDate($endDate2, 'end');
 
         foreach ($inactiveStatuses as $status) {
             // 1. Creating the first booking with an INACTIVE status
             $booking1 = new Booking();
             $booking1->setResource($resource)
-                ->setStartedAt(new \DateTimeImmutable($startDate1))
-                ->setEndedAt(new \DateTimeImmutable($endDate1))
+                ->setStartedAt(new \DateTimeImmutable($startDate1->format('Y-m-d\TH:i:s\Z')))
+                ->setEndedAt(new \DateTimeImmutable($endDate1->format('Y-m-d\TH:i:s\Z')))
+                ->setDbBlockedFrom(new \DateTimeImmutable($startDateDb1->format('Y-m-d\TH:i:s\Z')))
+                ->setDbBlockedTo(new \DateTimeImmutable($endDateDb1->format('Y-m-d\TH:i:s\Z')))
                 ->setStatus($status) // <--- Подставляем CANCELLED, EXPIRED, FAILED
                 ->setTotalPrice(1000)
                 ->setCreatedAt(new \DateTimeImmutable($createDate))
@@ -185,8 +257,10 @@ class BookingDatabaseTest extends WebTestCase
             // 2. Creating a second booking that overlaps with the first one
             $booking2 = new Booking();
             $booking2->setResource($resource)
-                ->setStartedAt(new \DateTimeImmutable($startDate2))
-                ->setEndedAt(new \DateTimeImmutable($endDate2))
+                ->setStartedAt(new \DateTimeImmutable($startDate2->format('Y-m-d\TH:i:s\Z')))
+                ->setEndedAt(new \DateTimeImmutable($endDate2->format('Y-m-d\TH:i:s\Z')))
+                ->setDbBlockedFrom(new \DateTimeImmutable($startDateDb2->format('Y-m-d\TH:i:s\Z')))
+                ->setDbBlockedTo(new \DateTimeImmutable($endDateDb2->format('Y-m-d\TH:i:s\Z')))
                 ->setStatus(BookingStatus::CONFIRMED)
                 ->setTotalPrice(1000)
                 ->setCreatedAt(new \DateTimeImmutable($createDate))

@@ -113,6 +113,9 @@ class BookingControllerTest extends WebTestCase
         ];
     }
 
+    /**
+     * Test getting bookings list success
+     */
     public function testGettingBookingsListSuccess(): void
     {
         $this->logInAsClientOrAdmin();
@@ -129,13 +132,15 @@ class BookingControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
+    /**
+     * Test getting bookings list with wrong parameter returns 422 error
+     */
     public function testGettingBookingsListWithWrongParameter(): void
     {
         $this->logInAsClientOrAdmin(true);
 
         // not ATOM format (ISO 8601)
-        $wrongStartDate = (new \DateTimeImmutable('first day of next year'))
-            ->modify('weekday')
+        $wrongStartDate = (new \DateTimeImmutable('first monday of next year'))
             ->format('Y-m-d');
         $this->client->request(
             'GET',
@@ -160,12 +165,14 @@ class BookingControllerTest extends WebTestCase
         );
     }
 
+    /**
+     * Test booking creation success and list check (1 booking created)
+     */
     public function testBookingCreationSuccessAndListCheck(): void
     {
         $this->logInAsClientOrAdmin();
 
-        $startDate = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
+        $startDate = (new \DateTimeImmutable('next week monday'))
             ->setTime(12, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
@@ -207,7 +214,6 @@ class BookingControllerTest extends WebTestCase
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('data', $responseData);
         $this->assertCount(1, $responseData['data']);
-        //var_dump($responseData['data']);
     }
 
     /**
@@ -218,8 +224,7 @@ class BookingControllerTest extends WebTestCase
     {
         $this->logInAsClientOrAdmin();
 
-        $startDate = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
+        $startDate = (new \DateTimeImmutable('next week monday'))
             ->setTime(14, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $payload = [
@@ -264,12 +269,14 @@ class BookingControllerTest extends WebTestCase
         );
     }
 
+    /**
+     * Test trying to create booking in past returns validation error
+     */
     public function testBookingInPastReturnsValidationError(): void
     {
         $this->logInAsClientOrAdmin();
 
-        $startDateInPast = (new \DateTimeImmutable('first day of last year'))
-            ->modify('weekday')
+        $startDateInPast = (new \DateTimeImmutable('first monday of last year'))
             ->setTime(12, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
@@ -298,12 +305,14 @@ class BookingControllerTest extends WebTestCase
         );
     }
 
+    /**
+     * Test cancel booking success and repeat cancel returns validation error
+     */
     public function testCancelBookingSuccessAndRepeatCancel(): void
     {
         $this->logInAsClientOrAdmin();
 
-        $startDate = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
+        $startDate = (new \DateTimeImmutable('next week monday'))
             ->setTime(12, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
@@ -362,12 +371,14 @@ class BookingControllerTest extends WebTestCase
         );
     }
 
+    /**
+     * Test cancel booking by wrong user returns 403 error
+     */
     public function testCancelBookingByWrongUser(): void
     {
         $this->logInAsClientOrAdmin(true);
 
-        $startDate = (new \DateTimeImmutable('+1 month'))
-            ->modify('weekday')
+        $startDate = (new \DateTimeImmutable('next week monday'))
             ->setTime(12, 0, 0)
             ->format('Y-m-d\TH:i:s\Z');
         $this->client->request(
@@ -404,14 +415,86 @@ class BookingControllerTest extends WebTestCase
         $this->assertEquals(403, $this->client->getResponse()->getStatusCode());
     }
 
-    /*
-    public function testSomething(): void
+    /**
+     * Test booking creation carries over night successfully
+     * and returns correct calculations of time and price
+     */
+    public function testBookingCreationCarriesOverNightAndReturnsCorrectCalculations(): void
     {
-        $client = static::createClient();
-        $crawler = $client->request('GET', '/');
+        $this->logInAsClientOrAdmin();
 
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('h1', 'Hello World');
+        // Wednesday 19:00:00. The coworking space will close in 1 hour (at 20:00)
+        // Booking order - duration = 120 minutes (2 hours).
+        // It is expected that 1 hour will be scheduled for Wednesday,
+        // and the remaining 1 hour will be postponed to Thursday from 08:00 to 09:00
+        $startDate = (new \DateTimeImmutable('next week wednesday'))
+            ->setTime(19, 0, 0);
+        $endDate = $startDate->modify('+1 day');
+
+        $this->client->request(
+            'POST',
+            '/api/booking',
+            [],
+            [],
+            $this->getAuthHeaders(),
+            json_encode([
+                'resourceId' => $this->testResource->getId()->toString(),
+                'startedAt' => $startDate->format('Y-m-d\TH:i:s\Z'),
+                'endDate' => $endDate->format('Y-m-d\TH:i:s\Z'),
+                'duration' => 120
+            ])
+        );
+
+        $this->assertEquals(201, $this->client->getResponse()->getStatusCode());
+
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+
+        // Checking end-to-end calculations in the API response
+        $this->assertArrayHasKey('endedAt', $responseData);
+        $expectedEndDay = (new \DateTimeImmutable('next week thursday'))
+            ->setTime(9, 0, 0)->format('Y-m-d\TH:i:s');
+        $this->assertStringContainsString($expectedEndDay, $responseData['endedAt']);
+
+        $this->assertEquals(120, $responseData['totalTime']); // Net 120 working minutes
+        $this->assertEquals(1000, $responseData['totalPrice']); // 2 working hours * 500 per hour = 1000
     }
-    */
+
+    /**
+     * Test booking entirely in weekend returns validation error 422
+     */
+    public function testBookingEntirelyInWeekendReturnsValidationError422(): void
+    {
+        $this->logInAsClientOrAdmin();
+
+        // Attempt to book time on Sunday (coworking is closed)
+        $sundayStart = (new \DateTimeImmutable('next week sunday'))
+            ->setTime(12, 0, 0)
+            ->format('Y-m-d\TH:i:s\Z');
+        $sundayEnd = (new \DateTimeImmutable('next week sunday'))
+            ->setTime(15, 0, 0)
+            ->format('Y-m-d\TH:i:s\Z');
+
+        $this->client->request(
+            'POST',
+            '/api/booking',
+            [],
+            [],
+            $this->getAuthHeaders(),
+            json_encode([
+                'resourceId' => $this->testResource->getId()->toString(),
+                'startedAt' => $sundayStart,
+                'endDate' => $sundayEnd
+            ])
+        );
+
+        $this->assertEquals(422, $this->client->getResponse()->getStatusCode());
+
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('errors', $responseData);
+        $this->assertArrayHasKey('startedAt', $responseData['errors']);
+        $this->assertStringContainsString(
+            'The requested interval is entirely outside of working hours (nights or weekends).',
+            $responseData['errors']['startedAt']
+        );
+    }
 }
