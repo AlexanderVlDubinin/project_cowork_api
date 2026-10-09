@@ -119,6 +119,19 @@ class BookingManager
             $booking->setEndedAt($end);
             $booking->setStatus(BookingStatus::PENDING);
 
+            // Writing down the extended time borders (with a technical break) for the GiST index of the DBMS
+            if ($start->format('H:i') !== '08:00') {
+                $booking->setDbBlockedFrom($start->modify("-{$this->bookingTechBreak} minutes"));
+            } else {
+                $booking->setDbBlockedFrom($start);
+            }
+
+            if ($end->format('H:i') !== '20:00') {
+                $booking->setDbBlockedTo($end->modify("+{$this->bookingTechBreak} minutes"));
+            } else {
+                $booking->setDbBlockedTo($end);
+            }
+
             $workingMinutes = $this->calendarService->calculateWorkingMinutesBetween($start, $end);
             $hours = $workingMinutes / 60;
             $booking->setTotalPrice((int)ceil($resource->getPricePerHour() * $hours));

@@ -24,6 +24,8 @@ class PaymentServiceTest extends TestCase
 {
     use ClockSensitiveTrait; // trait is used for flexible time simulation (mockTime())
 
+    private int $bookingTechBreak = 5; // A stub for tech break
+
     #[AllowMockObjectsWithoutExpectations] // to avoid notices about missing expectations MessageBusInterface & LoggerInterface
     public function testConfirmPaymentViaWebhookSuccessDispatchesMessages(): void
     {
@@ -39,13 +41,24 @@ class PaymentServiceTest extends TestCase
         $testResource = new Resource();
 
         // 2. Preparing test data (Entities)
+        $start = $baseTime->modify('+2 hour'); // baseTime+2 hour
+        $startDb = ($start->format('H:i') !== '08:00')
+            ? $start->modify("-{$this->bookingTechBreak} minutes")
+            : $start;
+        $end = $baseTime->modify('+4 hour'); // baseTime+4 hour
+        $endDb = ($end->format('H:i') !== '20:00')
+            ? $end->modify("+{$this->bookingTechBreak} minutes")
+            : $end;
+
         $booking = new Booking();
         $booking
             ->setUser($testUser)
             ->setResource($testResource)
             ->setStatus(BookingStatus::CONFIRMED)
-            ->setStartedAt($baseTime->modify('+2 hour')) // baseTime+2 hour
-            ->setEndedAt($baseTime->modify('+4 hour')) // baseTime+4 hour
+            ->setStartedAt($start)
+            ->setEndedAt($end)
+            ->setDbBlockedFrom($startDb)
+            ->setDbBlockedTo($endDb)
             ->setTotalPrice(1500);
 
         $transaction = new PaymentTransaction();

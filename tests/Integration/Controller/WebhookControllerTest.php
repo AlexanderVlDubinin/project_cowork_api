@@ -27,6 +27,7 @@ class WebhookControllerTest extends WebTestCase
     private UserPasswordHasherInterface $passwordHasher;
     private \DateTimeImmutable $baseTime;
     private string $jwtToken;
+    private int $bookingTechBreak = 5; // A stub for tech break
 
     protected function setUp(): void
     {
@@ -215,13 +216,24 @@ class WebhookControllerTest extends WebTestCase
      */
     private function createBaseBooking(): Booking
     {
+        $startDate = $this->baseTime->modify('+1 hour');
+        $startDateDb = ($startDate->format('H:i') !== '08:00')
+            ? $startDate->modify("-{$this->bookingTechBreak} minutes")
+            : $startDate;
+        $endDate = $this->baseTime->modify('+2 hours');
+        $endDateDb = ($endDate->format('H:i') !== '20:00')
+            ? $endDate->modify("+{$this->bookingTechBreak} minutes")
+            : $endDate;
+
         $booking = new Booking();
         $booking
             ->setUser($this->testUser)
             ->setResource($this->testResource)
             ->setStatus(BookingStatus::PENDING)
-            ->setStartedAt($this->baseTime->modify('+1 hour'))
-            ->setEndedAt($this->baseTime->modify('+2 hours'))
+            ->setStartedAt($startDate)
+            ->setEndedAt($endDate)
+            ->setDbBlockedFrom($startDateDb)
+            ->setDbBlockedTo($endDateDb)
             ->setTotalPrice(1000);
         $this->em->persist($booking);
 

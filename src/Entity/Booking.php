@@ -46,6 +46,14 @@ class Booking
     #[Groups(['booking:read'])]
     private ?\DateTimeImmutable $endedAt = null;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[Assert\NotNull]
+    private \DateTimeImmutable $dbBlockedFrom;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[Assert\NotNull]
+    private \DateTimeImmutable $dbBlockedTo;
+
     #[ORM\Column(type: Types::STRING, length: 30, enumType: BookingStatus::class)]
     #[Groups(['booking:read'])]
     private ?BookingStatus $status = null;
@@ -121,6 +129,30 @@ class Booking
     public function setEndedAt(\DateTimeImmutable $endedAt): static
     {
         $this->endedAt = $endedAt;
+
+        return $this;
+    }
+
+    public function getDbBlockedFrom(): \DateTimeImmutable
+    {
+        return $this->dbBlockedFrom;
+    }
+
+    public function setDbBlockedFrom(\DateTimeImmutable $dbBlockedFrom): static
+    {
+        $this->dbBlockedFrom = $dbBlockedFrom;
+
+        return $this;
+    }
+
+    public function getDbBlockedTo(): \DateTimeImmutable
+    {
+        return $this->dbBlockedTo;
+    }
+
+    public function setDbBlockedTo(\DateTimeImmutable $dbBlockedTo): static
+    {
+        $this->dbBlockedTo = $dbBlockedTo;
 
         return $this;
     }

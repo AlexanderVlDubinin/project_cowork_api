@@ -24,6 +24,7 @@ class ResourceClientControllerTest extends WebTestCase
     private UserPasswordHasherInterface $passwordHasher;
     private \DateTimeImmutable $baseTime;
     private string $jwtToken;
+    private int $bookingTechBreak = 5; // A stub for tech break
 
     protected function setUp(): void
     {
@@ -100,6 +101,30 @@ class ResourceClientControllerTest extends WebTestCase
             'CONTENT_TYPE' => 'application/json',
             'HTTP_AUTHORIZATION' => 'Bearer ' . $this->jwtToken,
         ];
+    }
+
+    /**
+     * HELPER: Adjusts the date to account for the booking technical break
+     *
+     * @param \DateTimeImmutable $date
+     * @param string $dateType start or end
+     * @return \DateTimeImmutable
+     */
+    private function getDbDate(\DateTimeImmutable $date, string $dateType): \DateTimeImmutable
+    {
+        $dateDb = $date;
+        if ($dateType === 'start') {
+            if ($date->format('H:i') !== '08:00') {
+                $dateDb = $date->modify("-{$this->bookingTechBreak} minutes");
+            }
+        }
+        if ($dateType === 'end') {
+            if ($date->format('H:i') !== '20:00') {
+                $dateDb = $date->modify("+{$this->bookingTechBreak} minutes");
+            }
+        }
+
+        return $dateDb;
     }
 
     /**
@@ -254,12 +279,19 @@ class ResourceClientControllerTest extends WebTestCase
 
 
         // test booking 12:00 - 13:00 (+ 5 minutes of tech break)
+        $startDate = $this->baseTime;
+        $startDateDb = $this->getDbDate($startDate, 'start');
+        $endDate = $this->baseTime->modify('+1 hour');
+        $endDateDb = $this->getDbDate($endDate, 'end');
+
         $existingBooking = new Booking();
         $existingBooking
             ->setUser($testUser)
             ->setResource($testResource)
             ->setStartedAt($this->baseTime) // 12:00
             ->setEndedAt($this->baseTime->modify('+1 hour')) // 13:00
+            ->setDbBlockedFrom($startDateDb)
+            ->setDbBlockedTo($endDateDb)
             ->setTotalPrice(500)
             ->setStatus(BookingStatus::PENDING);
         $this->em->persist($existingBooking);
@@ -327,12 +359,19 @@ class ResourceClientControllerTest extends WebTestCase
 
 
         // test booking 08:00 - 08:30 (+ 5 minutes of tech break)
+        $startDate = $this->baseTime->modify('+1 day')->setTime(8, 0, 0); // Monday 08:00
+        $startDateDb = $this->getDbDate($startDate, 'start');
+        $endDate = $this->baseTime->modify('+1 day')->setTime(8, 30, 0); // Monday 08:30
+        $endDateDb = $this->getDbDate($endDate, 'end');
+
         $existingBooking = new Booking();
         $existingBooking
             ->setUser($testUser)
             ->setResource($testResource)
-            ->setStartedAt($this->baseTime->modify('+1 day')->setTime(8, 0, 0)) // Monday 08:00
-            ->setEndedAt($this->baseTime->modify('+1 day')->setTime(8, 30, 0)) // Monday 08:30
+            ->setStartedAt($startDate)
+            ->setEndedAt($endDate)
+            ->setDbBlockedFrom($startDateDb)
+            ->setDbBlockedTo($endDateDb)
             ->setTotalPrice(500)
             ->setStatus(BookingStatus::CONFIRMED);
         $this->em->persist($existingBooking);
@@ -460,12 +499,19 @@ class ResourceClientControllerTest extends WebTestCase
                 continue;
             }
 
+            $startDate = $this->baseTime;
+            $startDateDb = $this->getDbDate($startDate, 'start'); // 12:00
+            $endDate = $this->baseTime->modify('+1 hour'); // 13:00
+            $endDateDb = $this->getDbDate($endDate, 'end');
+
             $booking = new Booking();
             $booking
                 ->setUser($testUser)
                 ->setResource($resource)
-                ->setStartedAt($this->baseTime) // 12:00
-                ->setEndedAt($this->baseTime->modify('+1 hour')) // 13:00
+                ->setStartedAt($startDate) // 12:00
+                ->setEndedAt($endDate) // 13:00
+                ->setDbBlockedFrom($startDateDb)
+                ->setDbBlockedTo($endDateDb)
                 ->setTotalPrice(500)
                 ->setStatus(BookingStatus::CONFIRMED);
             $this->em->persist($booking);
@@ -519,12 +565,19 @@ class ResourceClientControllerTest extends WebTestCase
 
 
         // test booking 09:00 - 10:00 (+ 5 minutes of tech break)
+        $startDate = $this->baseTime->setTime(9, 0, 0); // Monday 09:00
+        $startDateDb = $this->getDbDate($startDate, 'start');
+        $endDate = $this->baseTime->setTime(10, 0, 0); // Monday 10:00
+        $endDateDb = $this->getDbDate($endDate, 'end');
+
         $existingBooking = new Booking();
         $existingBooking
             ->setUser($testUser)
             ->setResource($testResource)
-            ->setStartedAt($this->baseTime->setTime(9, 0, 0)) // Monday 09:00
-            ->setEndedAt($this->baseTime->setTime(10, 0, 0)) // Monday 10:00
+            ->setStartedAt($startDate)
+            ->setEndedAt($endDate)
+            ->setDbBlockedFrom($startDateDb)
+            ->setDbBlockedTo($endDateDb)
             ->setTotalPrice(500)
             ->setStatus(BookingStatus::CONFIRMED);
         $this->em->persist($existingBooking);

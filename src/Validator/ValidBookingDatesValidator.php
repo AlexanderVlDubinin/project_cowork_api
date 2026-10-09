@@ -31,22 +31,22 @@ class ValidBookingDatesValidator extends ConstraintValidator
                 return;
             }
 
-            // 3. Fully falling into the off-duty interval (night/weekend)
-            $totalWorkingMinutes = $calendar->calculateWorkingMinutesBetween($rawStart, $rawEnd);
-            if ($totalWorkingMinutes === 0) {
-                $this->context->buildViolation($constraint->outsideIntervalMessage)
+            // 3. Normalization of the starting point based on working hours
+            $start = $calendar->normalizeStartDate($rawStart);
+
+            // 4. Checking for the past time (performed relative to the normalized work start)
+            $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+            if ($start <= $now) {
+                $this->context->buildViolation($constraint->pastMessage)
                     ->atPath('startedAt')
                     ->addViolation();
                 return;
             }
 
-            // 4. Normalization of the starting point based on working hours
-            $start = $calendar->normalizeStartDate($rawStart);
-
-            // 5. Checking for the past time (performed relative to the normalized work start)
-            $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
-            if ($start <= $now) {
-                $this->context->buildViolation($constraint->pastMessage)
+            // 5. Fully falling into the off-duty interval (night/weekend)
+            $totalWorkingMinutes = $calendar->calculateWorkingMinutesBetween($rawStart, $rawEnd);
+            if ($totalWorkingMinutes === 0) {
+                $this->context->buildViolation($constraint->outsideIntervalMessage)
                     ->atPath('startedAt')
                     ->addViolation();
                 return;

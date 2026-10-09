@@ -25,6 +25,7 @@ class ResourceUsageControllerTest extends WebTestCase
     private UserPasswordHasherInterface $passwordHasher;
     private \DateTimeImmutable $baseTime;
     private string $jwtToken;
+    private int $bookingTechBreak = 5; // A stub for tech break
 
     protected function setUp(): void
     {
@@ -100,6 +101,30 @@ class ResourceUsageControllerTest extends WebTestCase
     }
 
     /**
+     * HELPER: Adjusts the date to account for the booking technical break
+     *
+     * @param \DateTimeImmutable $date
+     * @param string $dateType start or end
+     * @return \DateTimeImmutable
+     */
+    private function getDbDate(\DateTimeImmutable $date, string $dateType): \DateTimeImmutable
+    {
+        $dateDb = $date;
+        if ($dateType === 'start') {
+            if ($date->format('H:i') !== '08:00') {
+                $dateDb = $date->modify("-{$this->bookingTechBreak} minutes");
+            }
+        }
+        if ($dateType === 'end') {
+            if ($date->format('H:i') !== '20:00') {
+                $dateDb = $date->modify("+{$this->bookingTechBreak} minutes");
+            }
+        }
+
+        return $dateDb;
+    }
+
+    /**
      * 1. It is not possible to make a CHECK_IN if the booking is not in the CONFIRMED status.
      */
     public function testCheckInFailsIfStatusIsNotConfirmed(): void
@@ -107,13 +132,20 @@ class ResourceUsageControllerTest extends WebTestCase
         $this->logInAsClient();
 
         // 1. Creating a test booking with the PENDING status
+        $startDate = $this->baseTime->modify('+1 hour');
+        $startDateDb = $this->getDbDate($startDate, 'start');
+        $endDate = $this->baseTime->modify('+2 hours');
+        $endDateDb = $this->getDbDate($endDate, 'end');
+
         $booking = new Booking();
         $booking
             ->setUser($this->testUser)
             ->setResource($this->testResource)
             ->setStatus(BookingStatus::PENDING)
-            ->setStartedAt($this->baseTime->modify('+1 hour'))
-            ->setEndedAt($this->baseTime->modify('+2 hours'))
+            ->setStartedAt($startDate)
+            ->setEndedAt($endDate)
+            ->setDbBlockedFrom($startDateDb)
+            ->setDbBlockedTo($endDateDb)
             ->setTotalPrice(1000);
 
         $this->em->persist($booking);
@@ -151,13 +183,20 @@ class ResourceUsageControllerTest extends WebTestCase
         // 2. Creating a booking that will start much later (2 hours after the base time)
         // Since the bookingTechBreak buffer (during which check_in occurs) is 5 minutes,
         // an attempt to check_in in an hour should return an error.
+        $startDate = $this->baseTime->modify('+2 hour'); // baseTime+2 hour
+        $startDateDb = $this->getDbDate($startDate, 'start');
+        $endDate = $this->baseTime->modify('+3 hour'); // baseTime+3 hour
+        $endDateDb = $this->getDbDate($endDate, 'end');
+
         $booking = new Booking();
         $booking
             ->setUser($this->testUser)
             ->setResource($this->testResource)
             ->setStatus(BookingStatus::CONFIRMED)
-            ->setStartedAt($this->baseTime->modify('+2 hour')) // baseTime+2 hour
-            ->setEndedAt($this->baseTime->modify('+3 hour')) // baseTime+3 hour
+            ->setStartedAt($startDate)
+            ->setEndedAt($endDate)
+            ->setDbBlockedFrom($startDateDb)
+            ->setDbBlockedTo($endDateDb)
             ->setTotalPrice(1500);
 
         $this->em->persist($booking);
@@ -194,13 +233,20 @@ class ResourceUsageControllerTest extends WebTestCase
         // 2. Creating a booking that will start just a bit later (1 hour after the base time)
         // Since the bookingTechBreak buffer (during which check_in occurs) is 5 minutes,
         // an attempt to check_in in 57 minutes should be successful.
+        $startDate = $this->baseTime->modify('+1 hour'); // baseTime+1 hour
+        $startDateDb = $this->getDbDate($startDate, 'start');
+        $endDate = $this->baseTime->modify('+2 hour'); // baseTime+2 hour
+        $endDateDb = $this->getDbDate($endDate, 'end');
+
         $booking = new Booking();
         $booking
             ->setUser($this->testUser)
             ->setResource($this->testResource)
             ->setStatus(BookingStatus::CONFIRMED)
-            ->setStartedAt($this->baseTime->modify('+1 hour')) // baseTime+1 hour
-            ->setEndedAt($this->baseTime->modify('+2 hour')) // baseTime+2 hour
+            ->setStartedAt($startDate)
+            ->setEndedAt($endDate)
+            ->setDbBlockedFrom($startDateDb)
+            ->setDbBlockedTo($endDateDb)
             ->setTotalPrice(1500);
 
         $this->em->persist($booking);
