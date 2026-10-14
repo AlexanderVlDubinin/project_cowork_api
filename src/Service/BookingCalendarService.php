@@ -108,24 +108,26 @@ final class BookingCalendarService
     }
 
     /**
-     * Checking the 30-minute limit on the first day and SHIFTING the START
+     * Checking the $bookingFirstDayTimeMin minute limit on the first day and SHIFTING the START
      */
     public function firstDayTimeLimitCheckAndShift(
         \DateTimeImmutable $start,
         ?string $endDate,
         ?int $duration,
-        int $totalWorkingMinutes): array
+        int $totalWorkingMinutes,
+        int $bookingFirstDayTimeMin
+    ): array
     {
         $workEndToday = $start->setTime(self::WORK_END_HOUR, 0, 0);
         $availableMinutesToday = ($workEndToday->getTimestamp() - $start->getTimestamp()) / 60;
 
-        $durationToCheck = $duration ?? (empty($endDate) ? 30 : null);
+        $durationToCheck = $duration ?? (empty($endDate) ? $bookingFirstDayTimeMin : null);
         $targetMinutes = $durationToCheck ?? $totalWorkingMinutes;
 
         // If the requested time is longer than the remaining time on the first day,
-        // and there are less than 30 minutes left:
+        // and there are less than $bookingFirstDayTimeMin minutes left:
         $isFirstDayShift = false;
-        if ($targetMinutes > $availableMinutesToday && $availableMinutesToday < 30) {
+        if ($targetMinutes > $availableMinutesToday && $availableMinutesToday < $bookingFirstDayTimeMin) {
             // Emulating a shift of the start to the morning of the next working day
             $nextDayStart = $start->modify('tomorrow midnight')->setTime(self::WORK_START_HOUR, 0, 0);
             $start = $this->normalizeStartDate($nextDayStart);

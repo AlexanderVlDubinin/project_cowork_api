@@ -19,7 +19,6 @@ class BookingInput
     #[Assert\DateTime(format: \DateTimeInterface::ATOM, message: 'End date must be in ATOM format (ISO 8601)')]
     public ?string $endDate = null;
 
-    #[Assert\GreaterThanOrEqual(30, message: 'Duration must be at least 30 minutes')]
     public ?int $duration = null;
 
     public function getStartedAtObject($tz = ''): \DateTimeImmutable

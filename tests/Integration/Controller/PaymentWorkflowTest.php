@@ -28,6 +28,7 @@ class PaymentWorkflowTest extends WebTestCase
     private UserPasswordHasherInterface $passwordHasher;
     private string $jwtToken;
     private \DateTimeImmutable $baseTime;
+    private int $bookingTechBreak = 5; // A stub for tech break
 
     protected function setUp(): void
     {
@@ -87,6 +88,8 @@ class PaymentWorkflowTest extends WebTestCase
             ->setResource($resource)
             ->setStartedAt($this->baseTime->modify('+1 hour')) // 13:00
             ->setEndedAt($this->baseTime->modify('+3 hour')) // 15:00
+            ->setDbBlockedFrom($this->baseTime->modify('+1 hour - ' . $this->bookingTechBreak . ' minutes'))
+            ->setDbBlockedTo($this->baseTime->modify('+3 hour + ' . $this->bookingTechBreak . ' minutes'))
             ->setTotalPrice(500)
             ->setStatus(BookingStatus::PENDING);
 

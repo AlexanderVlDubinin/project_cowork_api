@@ -29,6 +29,7 @@ class BookingManager
         private readonly BookingCalendarService $calendarService,
         private readonly int                    $bookingPaymentDelay,
         private readonly int                    $bookingTechBreak,
+        private readonly int                    $bookingFirstDayTimeMin
     ) {}
 
     public function createBookingFromParams(
@@ -67,8 +68,14 @@ class BookingManager
         // 2. NORMALIZATION OF THE STARTING POINT
         $start = $this->calendarService->normalizeStartDate($rawStart);
 
-        // 3.FIRST DAY RULE (Minimum 30 minutes of working time on the first day)
-        $checkResult = $this->calendarService->firstDayTimeLimitCheckAndShift($start, $rawEndDate, $duration, $initialWorkingMinutes);
+        // 3.FIRST DAY RULE (Minimum $bookingFirstDayTimeMin minutes of working time on the first day)
+        $checkResult = $this->calendarService->firstDayTimeLimitCheckAndShift(
+            $start,
+            $rawEndDate,
+            $duration,
+            $initialWorkingMinutes,
+            $this->bookingFirstDayTimeMin
+        );
         $start = $checkResult['start'];
 
         // 4. THE FINAL CALCULATION OF ENDED_AT

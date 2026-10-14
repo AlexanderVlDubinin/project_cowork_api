@@ -5,6 +5,7 @@ namespace App\Tests\Integration\Controller;
 use App\Entity\Booking;
 use App\Entity\Resource;
 use App\Entity\User;
+use App\Enum\BookingStatus;
 use App\Enum\ResourceType;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
@@ -19,6 +20,7 @@ class BookingControllerTest extends WebTestCase
     private Resource $testResource;
     private UserPasswordHasherInterface $passwordHasher;
     private string $jwtToken;
+    private int $bookingTechBreak = 5; // A stub for tech break
 
     protected function setUp(): void
     {
@@ -300,7 +302,7 @@ class BookingControllerTest extends WebTestCase
         $this->assertArrayHasKey('errors', $responseData);
         $this->assertArrayHasKey('startedAt', $responseData['errors']);
         $this->assertStringContainsString(
-            'You cannot book a resource in the past.',
+            'Start date must be in the future.',
             $responseData['errors']['startedAt']
         );
     }
@@ -366,9 +368,80 @@ class BookingControllerTest extends WebTestCase
         $this->assertArrayHasKey('errors', $responseData);
         $this->assertArrayHasKey('error', $responseData['errors']);
         $this->assertStringContainsString(
-            'This booking is already cancelled.',
+            'You cannot cancel a booking with the `cancelled` status.',
             $responseData['errors']['error']
         );
+    }
+
+    public function testValidationErrorWhenCancelInactiveStatuses(): void
+    {
+        $this->logInAsClientOrAdmin(true);
+
+        // Inactive statuses (except cancel)
+        $inactiveStatuses = [
+            BookingStatus::EXPIRED,
+            BookingStatus::FAILED,
+            BookingStatus::NO_SHOW
+        ];
+
+        $resourceId = $this->em->getRepository(Resource::class)->findOneBy([])->getId();
+        $testUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'client@example.com']);
+        $userId = $testUser->getId();
+
+        // Creating dates for the booking
+        $baseDate = (new \DateTimeImmutable('next week monday'))->setTime(10, 0, 0);
+        $start = $baseDate->setTime(12, 0, 0);
+        $startDb = $start->modify("-{$this->bookingTechBreak} minutes");
+        $end = $baseDate->setTime(14, 0, 0);
+        $endDb = $end->modify("+{$this->bookingTechBreak} minutes");
+
+        foreach ($inactiveStatuses as $status) {
+            $resource = $this->em->getRepository(Resource::class)->findOneBy(['id' => $resourceId]);
+            $user = $this->em->getRepository(User::class)->findOneBy(['id' => $userId]);
+
+            $testBooking = new Booking();
+            $testBooking->setResource($resource)
+                ->setStartedAt($start)
+                ->setEndedAt($end)
+                ->setDbBlockedFrom($startDb)
+                ->setDbBlockedTo($endDb)
+                ->setStatus($status)
+                ->setTotalPrice(1000)
+                ->setCreatedAt($baseDate)
+                ->setUser($user);
+
+            $this->em->persist($testBooking);
+            $this->em->flush();
+            $bookingId = $testBooking->getId()->toString();
+            $this->em->clear(); // Clearing the Doctrine cache to simulate a clean DATABASE query
+
+            $this->client->request(
+                'DELETE',
+                '/api/booking/'.$bookingId,
+                [],
+                [],
+                $this->getAuthHeaders(),
+            );
+
+            $this->assertEquals(400, $this->client->getResponse()->getStatusCode());
+
+            $responseData = json_decode($this->client->getResponse()->getContent(), true);
+            $this->assertArrayHasKey('errors', $responseData);
+            $this->assertArrayHasKey('error', $responseData['errors']);
+            $this->assertStringContainsString(
+                'You cannot cancel a booking with the `'.$status->value.'` status.',
+                $responseData['errors']['error']
+            );
+
+            // Clearing the database/EntityManager before the next iteration of the loop
+            // so that the records do not interfere with each other.
+            $bookingToRemove = $this->em->getRepository(Booking::class)->findAll();
+            foreach ($bookingToRemove as $b) {
+                $this->em->remove($b);
+            }
+            $this->em->flush();
+            $this->em->clear(); // Be sure to clean it up at the end of the iteration!
+        }
     }
 
     /**

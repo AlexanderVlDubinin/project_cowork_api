@@ -21,6 +21,8 @@ class ResourceAvailabilityTest extends TestCase
     private Serializer&Stub $serializerStub;
     private ResourceAvailabilityService $service;
     private int $bookingTechBreak = 5;
+    private int $bookingDurationMin = 30;
+    private int $bookingFirstDayTimeMin = 30;
 
     protected function setUp(): void
     {
@@ -37,7 +39,9 @@ class ResourceAvailabilityTest extends TestCase
             $this->bookingRepositoryStub,
             $calendarService,
             $this->serializerStub,
-            $this->bookingTechBreak
+            $this->bookingTechBreak,
+            $this->bookingDurationMin,
+            $this->bookingFirstDayTimeMin
         );
     }
 
@@ -73,7 +77,8 @@ class ResourceAvailabilityTest extends TestCase
 
         // Setting the basic filters
         $dateTime = new \DateTimeImmutable('next week monday 12:00:00', new \DateTimeZone('UTC'));
-        $filters = new ResourceListFilterInput($dateTime->format(\DateTimeInterface::ATOM));
+        $filters = new ResourceListFilterInput();
+        $filters->startDate = $dateTime->format(\DateTimeInterface::ATOM);
         $filters->duration = 30;
 
         // Configuring repository stubs
@@ -113,7 +118,8 @@ class ResourceAvailabilityTest extends TestCase
 
         // Setting the basic filters
         $dateTime = new \DateTimeImmutable('next week monday 05:00:00', new \DateTimeZone('UTC'));
-        $filters = new ResourceListFilterInput($dateTime->format(\DateTimeInterface::ATOM));
+        $filters = new ResourceListFilterInput();
+        $filters->startDate = $dateTime->format(\DateTimeInterface::ATOM);
         $filters->duration = 60;
 
         // Configuring repository stubs
@@ -141,7 +147,8 @@ class ResourceAvailabilityTest extends TestCase
         $resource = $this->createTestResource($resourceId);
 
         $dateTime = new \DateTimeImmutable('next week monday 20:30:00', new \DateTimeZone('UTC'));
-        $filters = new ResourceListFilterInput($dateTime->format(\DateTimeInterface::ATOM));
+        $filters = new ResourceListFilterInput();
+        $filters->startDate = $dateTime->format(\DateTimeInterface::ATOM);
         $filters->endDate = null;
 
         $this->resourceRepositoryStub->method('findListForClientByFilters')->willReturn([$resource]);
@@ -168,9 +175,10 @@ class ResourceAvailabilityTest extends TestCase
         // Base point
         $baseDate = new \DateTimeImmutable('next week monday 10:00:00', new \DateTimeZone('UTC'));
 
-        $filters = new ResourceListFilterInput($baseDate->format(\DateTimeInterface::ATOM));
-        $filters->duration = 45;
+        $filters = new ResourceListFilterInput();
+        $filters->startDate = $baseDate->format(\DateTimeInterface::ATOM);
         $filters->endDate = $baseDate->modify('+5 hours')->format(\DateTimeInterface::ATOM);
+        $filters->duration = 45;
 
         // Booking 1
         $booking1 = $this->createMockBooking(
@@ -216,9 +224,10 @@ class ResourceAvailabilityTest extends TestCase
         // Base point
         $baseDate = new \DateTimeImmutable('next week monday 10:00:00', new \DateTimeZone('UTC'));
 
-        $filters = new ResourceListFilterInput($baseDate->format(\DateTimeInterface::ATOM));
-        $filters->duration = 35;
+        $filters = new ResourceListFilterInput();
+        $filters->startDate = $baseDate->format(\DateTimeInterface::ATOM);
         $filters->endDate = $baseDate->modify('+5 hours')->format(\DateTimeInterface::ATOM);
+        $filters->duration = 35;
 
         // Booking 1
         $booking1 = $this->createMockBooking(

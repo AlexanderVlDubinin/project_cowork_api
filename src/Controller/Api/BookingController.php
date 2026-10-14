@@ -108,10 +108,15 @@ final class BookingController extends AbstractController
             throw $this->createAccessDeniedException('You do not have permission to cancel this booking.');
         }
 
-        if ($booking->getStatus() === BookingStatus::CANCELLED) {
+        if (in_array($booking->getStatus(), [
+            BookingStatus::CANCELLED,
+            BookingStatus::EXPIRED,
+            BookingStatus::FAILED,
+            BookingStatus::NO_SHOW
+        ])) {
             return $this->json([
-                'message' => 'Booking cancelled',
-                'errors' => ['error' => 'This booking is already cancelled.']
+                'message' => 'Booking ' . $booking->getStatus()->value,
+                'errors' => ['error' => 'You cannot cancel a booking with the `' . $booking->getStatus()->value . '` status.']
             ], Response::HTTP_BAD_REQUEST);
         }
 

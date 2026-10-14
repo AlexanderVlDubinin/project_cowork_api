@@ -25,6 +25,8 @@ class ResourceClientControllerTest extends WebTestCase
     private \DateTimeImmutable $baseTime;
     private string $jwtToken;
     private int $bookingTechBreak = 5; // A stub for tech break
+    private int $bookingDurationMin = 30; // A stub for minimum booking duration
+    private int $bookingFirstDayTimeMin = 30; // A stub for minimum booking time on the first day
 
     protected function setUp(): void
     {
@@ -193,7 +195,7 @@ class ResourceClientControllerTest extends WebTestCase
         $this->logInAsClient();
 
         // Setting the base time for Friday at 19:45:00
-        // There are 15 minutes left before closing (less than 30 of the first day's limit).
+        // There are 15 minutes left before closing (less than $bookingFirstDayTimeMin of the first day's limit).
         $fridayEvening = $this->baseTime->modify('+4 days')->setTime(19, 45, 0);
         self::mockTime($fridayEvening);
 
@@ -202,7 +204,7 @@ class ResourceClientControllerTest extends WebTestCase
             '/api/resources',
             [
                 'startDate' => $fridayEvening->format(\DateTimeInterface::ATOM),
-                //'duration' => 30 // default duration
+                //'duration' => $this->bookingDurationMin // default duration
             ],
             [],
             $this->getAuthHeaders()
@@ -237,7 +239,7 @@ class ResourceClientControllerTest extends WebTestCase
             [
                 'startDate' => $start->format(\DateTimeInterface::ATOM),
                 'endDate' => $end->format(\DateTimeInterface::ATOM),
-                'duration' => 30
+                'duration' => $this->bookingDurationMin
             ],
             [],
             $this->getAuthHeaders()
@@ -248,7 +250,10 @@ class ResourceClientControllerTest extends WebTestCase
 
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('errors', $responseData);
-        $errorMessage = 'After shifting the start time (to the beginning of the working day - 08:00) due to insufficient time on the first day (<30 mins), the start time moved past or equal to the end time.';
+        $errorMessage = sprintf(
+            'After shifting the start time (to the beginning of the working day - 08:00) due to insufficient time on the first day (<%d mins), the start time moved past or equal to the end time.',
+            $this->bookingFirstDayTimeMin
+        );
         $this->assertStringContainsString($errorMessage, $responseData['errors']['startDate']);
     }
 
@@ -378,8 +383,8 @@ class ResourceClientControllerTest extends WebTestCase
 
         $this->em->flush();
 
-        // 3. Simulating the client's request: Monday 19:45, Duration = 30 minutes.
-        // There are 15 minutes left before closing (less than 30 of the first day's limit).
+        // 3. Simulating the client's request: Monday 19:45, Duration = $this->bookingDurationMin minutes.
+        // There are 15 minutes left before closing (less than $bookingFirstDayTimeMin of the first day's limit).
         $mondayEvening = $this->baseTime->setTime(19, 45, 0)->format(\DateTimeInterface::ATOM);
 
         $this->client->request(
@@ -387,7 +392,7 @@ class ResourceClientControllerTest extends WebTestCase
             '/api/resources',
             [
                 'startDate' => $mondayEvening,
-                //'duration' => 30 // default duration
+                //'duration' => $this->bookingDurationMin // default duration
             ],
             [],
             $this->getAuthHeaders()
@@ -408,7 +413,7 @@ class ResourceClientControllerTest extends WebTestCase
         // 4. CHECKING FOR AUTO-TRANSFER AND TECHNICAL BREAK:
         // The slot should be moved from Monday evening to Tuesday morning.
         // Since the 08:00-08:30 period is busy, and the technical break is 5 minutes,
-        // the nearest free slot should start at exactly 08:35 and last 30 minutes (until 09:05).
+        // the nearest free slot should start at exactly 08:35 and last $this->bookingDurationMin minutes (until 09:05).
         $expectedStart = $this->baseTime
             ->modify('+1 day')
             ->setTime(8, 35, 0)
@@ -584,7 +589,7 @@ class ResourceClientControllerTest extends WebTestCase
 
         $this->em->flush();
 
-        // 3. Simulating the client's request: Monday 10:01, Duration = 30 minutes.
+        // 3. Simulating the client's request: Monday 10:01, Duration = $this->bookingDurationMin minutes.
         // The booking has already ended, but there is still a technical break.
         $mondayEvening = $this->baseTime->setTime(10, 1, 0)->format(\DateTimeInterface::ATOM);
 
@@ -593,7 +598,7 @@ class ResourceClientControllerTest extends WebTestCase
             '/api/resources',
             [
                 'startDate' => $mondayEvening,
-                //'duration' => 30 // default duration
+                //'duration' => $this->bookingDurationMin // default duration
             ],
             [],
             $this->getAuthHeaders()
@@ -649,7 +654,7 @@ class ResourceClientControllerTest extends WebTestCase
 
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('errors', $responseData);
-        $errorMessage = 'The interval between start date and end date must be at least 30 minutes.';
+        $errorMessage = sprintf('The interval between start date and end date must be at least %d minutes.', $this->bookingDurationMin);
         $this->assertStringContainsString($errorMessage, $responseData['errors']['endDate']);
     }
 }

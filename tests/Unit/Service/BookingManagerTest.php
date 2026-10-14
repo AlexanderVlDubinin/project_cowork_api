@@ -27,6 +27,7 @@ class BookingManagerTest extends TestCase
     private EntityManagerInterface $entityManagerMock;
     private BookingManager $bookingManager;
     private int $bookingTechBreak = 5; // A stub for tech break
+    private int $bookingFirstDayTimeMin = 30; // A stub for first day time
 
     protected function setUp(): void
     {
@@ -54,7 +55,8 @@ class BookingManagerTest extends TestCase
             $loggerMock,
             $calendarService,
             $bookingPaymentDelay,
-            $this->bookingTechBreak
+            $this->bookingTechBreak,
+            $this->bookingFirstDayTimeMin
         );
     }
 
@@ -288,7 +290,8 @@ class BookingManagerTest extends TestCase
 
         $rawStart = $bookingInput->getStartedAtObject('UTC');
 
-        // Since 15 min < 30 min, the start should leave completely on Monday at 08:00 and the end at 09:00
+        // Since 15 min < $bookingFirstDayTimeMin minutes,
+        // the start should leave completely on Monday at 08:00 and the end at 09:00
         $expectedStart = $start->modify('+3 days')->setTime(8, 0, 0);
         $expectedEnd = $expectedStart->modify('+1 hour');
 

@@ -5,6 +5,7 @@ namespace App\DTO;
 use App\Enum\BookingStatus;
 use Symfony\Component\Validator\Constraints as Assert;
 
+// For admin use
 class BookingListFilterInput
 {
     public function __construct(
@@ -23,10 +24,10 @@ class BookingListFilterInput
         public readonly ?BookingStatus $status = null,
 
         #[Assert\Positive(message: 'The limit must be a positive integer.')]
-        public readonly ?int $limit = 10,
+        public readonly ?int $limit = null,
 
         #[Assert\Positive(message: 'The page must be a positive integer.')]
-        public readonly ?int $page = 1
+        public readonly ?int $page = null
     ) {}
 
     #[Assert\IsFalse(message: 'Start date must be in the future')]

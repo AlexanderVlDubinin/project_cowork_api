@@ -9,10 +9,24 @@ use Symfony\Component\Validator\ConstraintValidator;
 
 class ValidBookingDatesValidator extends ConstraintValidator
 {
+    public function __construct(
+        private readonly int $bookingDurationMin,
+        private readonly int $bookingFirstDayTimeMin,
+    ) {}
+
     public function validate(mixed $value, Constraint $constraint): void
     {
         /** @var BookingInput $value */
         /** @var ValidBookingDates $constraint */
+
+        // Validating the duration field itself with a dynamic value
+        if ($value->duration !== null && $value->duration < $this->bookingDurationMin) {
+            $this->context->buildViolation($constraint->durationMinMessage)
+                ->setParameter('{{ limit }}', (string)$this->bookingDurationMin)
+                ->atPath('duration')
+                ->addViolation();
+            return;
+        }
 
         try {
             $calendar = new BookingCalendarService();
@@ -25,25 +39,25 @@ class ValidBookingDatesValidator extends ConstraintValidator
 
             // 2. Chronological order of the source dates
             if ($rawEnd <= $rawStart) {
-                $this->context->buildViolation($constraint->message)
+                $this->context->buildViolation($constraint->startEndDateOrderMessage)
                     ->atPath('endDate')
                     ->addViolation();
                 return;
             }
 
-            // 3. Normalization of the starting point based on working hours
+            // Normalization of the starting point based on working hours
             $start = $calendar->normalizeStartDate($rawStart);
 
-            // 4. Checking for the past time (performed relative to the normalized work start)
+            // 3. Checking for the past time (performed relative to the normalized work start)
             $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
             if ($start <= $now) {
-                $this->context->buildViolation($constraint->pastMessage)
+                $this->context->buildViolation($constraint->startInPastMessage)
                     ->atPath('startedAt')
                     ->addViolation();
                 return;
             }
 
-            // 5. Fully falling into the off-duty interval (night/weekend)
+            // 4. Fully falling into the off-duty interval (night/weekend)
             $totalWorkingMinutes = $calendar->calculateWorkingMinutesBetween($rawStart, $rawEnd);
             if ($totalWorkingMinutes === 0) {
                 $this->context->buildViolation($constraint->outsideIntervalMessage)
@@ -52,8 +66,14 @@ class ValidBookingDatesValidator extends ConstraintValidator
                 return;
             }
 
-            // 6. Checking the 30-minute limit on the first day and SHIFTING the START
-            $checkResult = $calendar->firstDayTimeLimitCheckAndShift($start, $value->endDate, $value->duration, $totalWorkingMinutes);
+            // 5. Checking the $bookingFirstDayTimeMin minute limit on the first day and SHIFTING the START
+            $checkResult = $calendar->firstDayTimeLimitCheckAndShift(
+                $start,
+                $value->endDate,
+                $value->duration,
+                $totalWorkingMinutes,
+                $this->bookingFirstDayTimeMin
+            );
             $start = $checkResult['start'];
             $durationToCheck = $checkResult['durationToCheck'];
             $isFirstDayShift = $checkResult['isFirstDayShift'];
@@ -63,36 +83,44 @@ class ValidBookingDatesValidator extends ConstraintValidator
                 ? new \DateTimeImmutable($value->endDate)
                 : $start->setTime(BookingCalendarService::WORK_END_HOUR, 0, 0);
 
-            // 7. (AFTER THE SHIFT): Did the start overtake the end after the first day shift?
+            // 6. (AFTER THE SHIFT): Did the start overtake the end after the first day shift?
             if ($isFirstDayShift && $start >= $end) {
-                $this->context->buildViolation($constraint->afterShiftStartEndMessage)
+                $this->context->buildViolation(sprintf($constraint->afterShiftStartEndMessage, $this->bookingFirstDayTimeMin))
                     ->atPath('startedAt')
                     ->addViolation();
                 return;
             }
 
-            // 8. Checking the minimum interval between dates after normalization and shift (at least 30 minutes)
+            // 7. Checking the minimum interval between dates after normalization and shift (at least $bookingFirstDayTimeMin minutes)
             $diffInMinutes = ($end->getTimestamp() - $start->getTimestamp()) / 60;
-            if ($diffInMinutes < 30) {
-                $shiftStartEndViolationMessage = $isFirstDayShift ? $constraint->shiftStartEndViolationMessage : '';
-                $this->context->buildViolation($constraint->minStartEndIntervalMessage . $shiftStartEndViolationMessage)
+            if ($diffInMinutes < $this->bookingDurationMin) {
+                $shiftStartEndViolationMessage = $isFirstDayShift
+                    ? sprintf($constraint->shiftStartEndViolationMessage, $this->bookingFirstDayTimeMin)
+                    : '';
+                $violationMessage = sprintf($constraint->minStartEndIntervalMessage, $this->bookingDurationMin) . $shiftStartEndViolationMessage;
+                $this->context->buildViolation($violationMessage)
                     ->atPath('endDate')
                     ->addViolation();
                 return;
             }
 
-            // 9. Checking if the working minutes match the transmitted duration
+            // 8. Checking if the working minutes match the transmitted duration
             if ($durationToCheck !== null) {
                 $workingMinutes = $calendar->calculateWorkingMinutesBetween($start, $end);
                 if ($workingMinutes < $durationToCheck) {
-                    $shiftWorkMinutesViolationMessage = $isFirstDayShift ? $constraint->shiftWorkMinutesViolationMessage : '';
-                    $this->context->buildViolation(sprintf(
-                        $shiftWorkMinutesViolationMessage . $constraint->workMinutesViolationMessage,
-                        $workingMinutes,
-                        $start->format('Y-m-d H:i:s'),
-                        $end->format('Y-m-d H:i:s'),
-                        $durationToCheck
-                    ))
+                    $shiftWorkMinutesViolationMessage = $isFirstDayShift
+                        ? sprintf($constraint->shiftWorkMinutesViolationMessage, $this->bookingFirstDayTimeMin)
+                        : '';
+                    $violationMessage = $shiftWorkMinutesViolationMessage . $constraint->workMinutesViolationMessage;
+                    $this->context->buildViolation(
+                        sprintf(
+                            $violationMessage,
+                            $workingMinutes,
+                            $start->format('Y-m-d H:i:s'),
+                            $end->format('Y-m-d H:i:s'),
+                            $durationToCheck
+                        )
+                    )
                         ->atPath('duration')
                         ->addViolation();
                 }

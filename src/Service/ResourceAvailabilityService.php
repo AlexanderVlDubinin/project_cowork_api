@@ -15,6 +15,8 @@ readonly class ResourceAvailabilityService
         private BookingCalendarService $calendarService,
         private SerializerInterface    $serializer,
         private int                    $bookingTechBreak,
+        private int                    $bookingDurationMin,
+        private int                    $bookingFirstDayTimeMin,
     ) {}
 
     /**
@@ -50,10 +52,10 @@ readonly class ResourceAvailabilityService
             : $rawStart->setTime(BookingCalendarService::WORK_END_HOUR, 0, 0);
         $totalWorkingMinutes = $this->calendarService->calculateWorkingMinutesBetween($rawStart, $rawEnd);
 
-        $duration = $filters->duration ?? (empty($filters->endDate) ? 30 : null);
+        $duration = $filters->duration ?? (empty($filters->endDate) ? $this->bookingDurationMin : null);
         $targetMinutes = $duration ?? $totalWorkingMinutes;
 
-        if ($targetMinutes > $availableMinutesToday && $availableMinutesToday < 30) {
+        if ($targetMinutes > $availableMinutesToday && $availableMinutesToday < $this->bookingFirstDayTimeMin) {
             $nextDayStart = $start->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
             $start = $this->calendarService->normalizeStartDate($nextDayStart);
         }
@@ -66,7 +68,7 @@ readonly class ResourceAvailabilityService
 
         $duration = $filters->duration ?? (
         empty($filters->endDate)
-            ? 30 // If only startDate is specified -> default duration of 30 minutes
+            ? $this->bookingDurationMin // If only startDate is specified -> default duration of bookingDurationMin minutes
             : null
         );
 
@@ -176,9 +178,9 @@ readonly class ResourceAvailabilityService
             // Checking the minimum remaining time on the first day for multi-day bookings
             $minutesLeftFirstDay = ($workEnd->getTimestamp() - $currentPointer->getTimestamp()) / 60;
 
-            if ($neededDuration > $minutesLeftFirstDay && $minutesLeftFirstDay < 30) {
-                // If there are less than 30 minutes left before the end of the day, and the booking is longer,
-                // postpone the start to tomorrow.
+            if ($neededDuration > $minutesLeftFirstDay && $minutesLeftFirstDay < $this->bookingFirstDayTimeMin) {
+                // If there are less than bookingFirstDayTimeMin minutes left before the end of the day,
+                // and the booking is longer, postpone the start to tomorrow.
                 $currentPointer = $currentPointer->modify('tomorrow midnight')->setTime(BookingCalendarService::WORK_START_HOUR, 0, 0);
                 continue;
             }
